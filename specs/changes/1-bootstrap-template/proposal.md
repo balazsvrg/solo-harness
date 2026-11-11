@@ -97,7 +97,7 @@ Pocock's tracker-setup skill is not vendored. Skills that refer to it are patche
 **R3. Original `finish` skill.** Runs as the last commit inside an M/L PR, after review is green. Steps:
 
 1. Verify every task in `tasks.md` is checked and every `AC-<id>-<n>` is referenced by a test. On failure, stop and report.
-2. Apply the proposal's ADDED/MODIFIED/REMOVED deltas to `specs/<capability>.md`. Move the change folder to `specs/changes/archive/YYYY-MM-DD-<id>/`.
+2. Apply the proposal's ADDED/MODIFIED/REMOVED deltas to `specs/<capability>.md`. Move the change folder to `specs/changes/archive/YYYY-MM-DD-<id>-<slug>/`.
 3. Scan proposal, design and diff for hard-to-reverse or surprising decisions. For each, ask the owner, then use `domain-modeling` to write `docs/adr/NNNN-*.md` and update `GLOSSARY.md`. Fill the PR `ADR:` field.
 4. Check the PR title is a valid Conventional Commit. Report the implied version bump and whether a release PR is open. Never edit `CHANGELOG.md`. Never merge the release PR.
 5. Link or close the issue. Ask whether anything went wrong that should become a rule, hook or check; if yes, suggest `retro`.
