@@ -47,15 +47,15 @@ flowchart LR
 
 **Blocked by:** T1.
 
-- [ ] Copy the 14 Pocock skills and `asd-ste100` into `.agents/skills/`; `.claude/skills` and `.github/skills` symlinks
-- [ ] Patches: `to-spec`, `to-tickets`, `pr`, `handoff`, tracker-setup references, `domain-modeling` (Mermaid), `code-review` (docs-drift rule)
-- [ ] `VENDORED.md`, `THIRD_PARTY_LICENSES.md`, `scripts/vendor-diff`, `make vendor-diff`
-- [ ] AC-1-5 `VENDORED.md` has a complete row per skill
-- [ ] AC-1-6 MIT notices and modified-skill list present
-- [ ] AC-1-7 `vendor-diff` prints diffs and writes nothing
-- [ ] AC-1-9 side-effecting skills have `disable-model-invocation: true`
-- [ ] AC-1-26 `code-review` standards axis contains the docs-drift rule
-- [ ] AC-1-32 (skills part) `to-spec` and `domain-modeling` instruct Mermaid diagrams
+- [x] Copy the 15 Pocock skills (incl. `grilling`, which `grill-with-docs` calls) and `asd-ste100` into `.agents/skills/`; `.claude/skills` and `.github/skills` symlinks
+- [x] Patches: `to-spec`, `to-tickets`, `pr`, `handoff`, tracker-setup references, `domain-modeling` (Mermaid), `code-review` (docs-drift rule)
+- [x] `VENDORED.md`, `THIRD_PARTY_LICENSES.md`, `scripts/vendor-diff`, `make vendor-diff`
+- [x] AC-1-5 `VENDORED.md` has a complete row per skill
+- [x] AC-1-6 MIT notices and modified-skill list present
+- [x] AC-1-7 `vendor-diff` prints diffs and writes nothing
+- [x] AC-1-9 side-effecting skills have `disable-model-invocation: true`
+- [x] AC-1-26 `code-review` standards axis contains the docs-drift rule
+- [x] AC-1-32 (skills part) `to-spec` and `domain-modeling` instruct Mermaid diagrams
 
 ## T3: `finish` skill
 

@@ -79,7 +79,7 @@ LICENSE (MIT)   THIRD_PARTY_LICENSES.md   README.md
 
 | Skill | Source | Modified? |
 |---|---|---|
-| `grill-with-docs`, `codebase-design`, `tdd`, `diagnosing-bugs`, `code-review`, `retro`, `writing-for-agents`, `domain-modeling`, `wizard`, `implement` | mattpocock/skills (MIT) | `code-review`: docs-drift rule added to standards axis (R13); others unmodified unless a tracker reference needs redirecting to `specs/` |
+| `grill-with-docs`, `grilling`, `codebase-design`, `tdd`, `diagnosing-bugs`, `code-review`, `retro`, `writing-for-agents`, `domain-modeling`, `wizard`, `implement` | mattpocock/skills (MIT) | `code-review`: docs-drift rule added to standards axis (R13); others unmodified unless a tracker reference needs redirecting to `specs/`. `grilling` is included because `grill-with-docs` calls it. |
 | `to-spec` | mattpocock/skills | Writes `specs/changes/<id>/proposal.md` with OpenSpec delta sections and `AC-<id>-<n>` IDs instead of publishing to a tracker |
 | `to-tickets` | mattpocock/skills | Writes tickets as sections of one `specs/changes/<id>/tasks.md` (title, delivers, blocked by, acceptance checkboxes) |
 | `pr` | mattpocock/skills | Fills the PR template fields (R10) and calls `asd-ste100` in STE-flavored mode for the description |
@@ -143,7 +143,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 
 **R10. Single `check`.** `make check` = `check-harness` + `check-app`.
 
-- `check-harness`: shellcheck on all shell scripts; actionlint on workflows; skill frontmatter validation; symlink integrity; `AGENTS.md` length; change-folder structure lint; deny-rule presence; hook tests (AC-1-13, AC-1-14, AC-1-35, AC-1-36); `test-bootstrap`.
+- `check-harness`: shellcheck on all shell scripts; actionlint on workflows; skill frontmatter validation; `VENDORED.md` and license-notice completeness (AC-1-5, AC-1-6); symlink integrity; `AGENTS.md` length; change-folder structure lint; deny-rule presence; hook tests (AC-1-13, AC-1-14, AC-1-35, AC-1-36); `test-bootstrap`.
 - `check-app`: placeholder filled by the project or an overlay. Prints `no app checks configured`. Passes while no source exists outside harness directories; fails once any does.
 - `fmt`: no-op in the core, accepts `FILE=<path>`; overlays fill it (prettier, ruff format, …).
 

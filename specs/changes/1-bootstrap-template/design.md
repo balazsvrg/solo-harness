@@ -60,7 +60,7 @@ scripts/                      # only commands the owner runs directly
   lib/
     common.sh                 # logging, die, run-or-print (dry-run), repo-root, glob matching
   check/                      # one script per check-harness concern, each exits non-zero on failure
-    symlinks.sh  agents-md.sh  skills-frontmatter.sh  change-folders.sh
+    symlinks.sh  agents-md.sh  skills-frontmatter.sh  change-folders.sh  vendored.sh
     deny-rules.sh  markdown.sh (Mermaid fences, image embeds)
   ci/                         # CI gate logic; pure functions of (PR body file, changed files, labels)
     docs-gate.sh  pr-size.sh  test-oracle.sh

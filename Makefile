@@ -4,9 +4,9 @@ SHELL := bash
 .DEFAULT_GOAL := check
 export PATH := $(CURDIR)/.harness/bin:$(PATH)
 
-HARNESS_CHECKS := symlinks agents-md skills-frontmatter change-folders markdown
+HARNESS_CHECKS := symlinks agents-md skills-frontmatter change-folders markdown vendored
 
-.PHONY: check check-harness check-app fmt tools test-harness
+.PHONY: check check-harness check-app fmt tools test-harness vendor-diff
 
 ## check: everything that must pass before a merge
 check: check-harness check-app
@@ -28,6 +28,10 @@ tools:
 # solo-harness:check-app-placeholder
 check-app:
 	@.harness/check/app-placeholder.sh
+
+## vendor-diff: print how each vendored skill differs from upstream HEAD (read-only)
+vendor-diff:
+	@scripts/vendor-diff
 
 ## fmt: format FILE=<path>. No-op in the core; overlays fill it.
 fmt:
