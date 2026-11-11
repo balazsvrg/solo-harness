@@ -80,7 +80,7 @@ scripts/                      # only commands the owner runs directly
 ## 4. Testing strategy
 
 - `.harness/tests/run.sh` is a ~60-line runner, invoked by `make test-harness` (part of `check-harness`). Each test is a bash function named `test_<what>`. The first line of each test is a comment naming the criterion it covers, e.g. `# AC-1-35`. This is what `docs-gate` greps for (AC-1-23), so this change proves its own gate.
-- Every criterion `AC-1-1` … `AC-1-39` has at least one test.
+- Every criterion `AC-1-1` … `AC-1-40` has at least one test.
 - Content criteria (e.g. AC-1-3, AC-1-10) are tested by asserting on required headings or lines, not on exact prose.
 - CI gates are tested by calling `.harness/ci/*.sh` with fixtures: a PR body file, a list of changed files with line counts, and labels. The scripts take these as arguments or environment variables, never by calling the GitHub API themselves. The workflows gather the data and pass it in.
 - Hooks are tested by piping the JSON Claude Code would send on stdin and asserting on the exit code and output.
@@ -141,7 +141,8 @@ flowchart TD
   mode -- yes --> gh[GitHub steps only: repo options, labels, ruleset, security features]
   mode -- no --> name[project name → placeholders]
   name --> agents[select agents → delete others]
-  agents --> gh2[GitHub steps unless --local]
+  agents --> attr{remove AI attribution? default no}
+  attr --> gh2[GitHub steps unless --local]
   gh2 --> rs{ruleset 403?}
   rs -- yes --> honor[honor mode notice]
   rs -- no --> strict[strict mode]
@@ -156,6 +157,7 @@ flowchart TD
 - **Idempotency:** every step first checks the current state (label exists, ruleset with the same name exists and matches, hooksPath already set, file already deleted) and prints `ok` or `changed`.
 - **Dry run:** all mutating commands go through `run` in `common.sh`, which prints instead of executing when `DRY_RUN=1`.
 - **`--add-agent`:** reads the template repo and version from `.template-version`, downloads that tag's tarball with `gh api`, and copies only that agent's paths.
+- **AI attribution:** one yes/no question, default no (keep). On yes, bootstrap writes the "no attribution" setting into each selected agent's project config that supports one; for Claude Code that is the attribution setting in `.claude/settings.json` (commit and PR text set to empty). Agents without such a setting are named in the summary. Template mode never asks, so this repo keeps its `Co-Authored-By` trailers. `BOOTSTRAP_ANSWERS` carries the answer in tests.
 - **Plugin duplicates:** reads `~/.claude/settings.json` `enabledPlugins` and the skill folder names inside each enabled plugin's cache directory. Any plugin with a skill name that matches a folder in `.agents/skills/` gets `"<plugin>": false` in the project's `.claude/settings.json`.
 
 ## 9. Ruleset and the first PR

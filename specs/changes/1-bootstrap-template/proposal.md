@@ -198,14 +198,15 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 
 1. Ask the project name; replace placeholders.
 2. Ask which agents are used (multi-select of Claude, Codex, Copilot, Gemini); delete the configs of the rest.
-3. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as squash commit message.
-4. Create labels: `size/S`, `size/M`, `size/L`, `size-exception`, `agent`, `dependencies`.
-5. Apply the ruleset; detect strict or honor mode (R15). On public repos, enable CodeQL and secret-scanning push protection.
-6. Run `git config core.hooksPath .githooks`; check that gitleaks is installed.
-7. Detect globally installed Claude plugins whose skills duplicate vendored ones (e.g. `mattpocock-skills`). Disable them in the new project's `.claude/settings.json` and tell the owner what it did. The template repo itself disables nothing.
-8. Guide human-only steps (e.g. secrets) in the `wizard` style.
-9. Write `.template-version`; reset `version.txt`/`CHANGELOG.md`; delete template-only files (`specs/changes/archive/*-bootstrap-template/`, template README sections).
-10. Print a summary. It includes a prominent **"next: configure `check-app`"** notice that names the Makefile target, explains that it fails once source code exists, and points to the README's overlay section. It also mentions `.docs-map` and suggests running the lifecycle on the first change.
+3. Ask whether agents should stop adding AI attribution (`Co-Authored-By: Claude …` trailers, "Generated with" lines) to commits and PRs. Default: keep. On yes, turn attribution off in each selected agent's project config where the agent has such a setting (Claude Code: `.claude/settings.json`; the exact keys for all four agents are verified against their current docs during implementation, as in R5). Tell the owner which agents have no such setting. The template repo keeps attribution.
+4. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as squash commit message.
+5. Create labels: `size/S`, `size/M`, `size/L`, `size-exception`, `agent`, `dependencies`.
+6. Apply the ruleset; detect strict or honor mode (R15). On public repos, enable CodeQL and secret-scanning push protection.
+7. Run `git config core.hooksPath .githooks`; check that gitleaks is installed.
+8. Detect globally installed Claude plugins whose skills duplicate vendored ones (e.g. `mattpocock-skills`). Disable them in the new project's `.claude/settings.json` and tell the owner what it did. The template repo itself disables nothing.
+9. Guide human-only steps (e.g. secrets) in the `wizard` style.
+10. Write `.template-version`; reset `version.txt`/`CHANGELOG.md`; delete template-only files (`specs/changes/archive/*-bootstrap-template/`, template README sections).
+11. Print a summary. It includes a prominent **"next: configure `check-app`"** notice that names the Makefile target, explains that it fails once source code exists, and points to the README's overlay section. It also mentions `.docs-map` and suggests running the lifecycle on the first change.
 
 Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--local` (skip all GitHub steps), `--add-agent <name>` (fetch that agent's files from the template repo).
 
@@ -213,7 +214,8 @@ Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--lo
 - **AC-1-28** GIVEN agent selection `claude` only THEN Codex, Copilot and Gemini files are removed and all remaining symlinks resolve. Repeat for each single agent and for all four.
 - **AC-1-29** GIVEN `--dry-run` THEN every GitHub step prints its `gh api` call and makes no network write.
 - **AC-1-34** GIVEN a placeholder `check-app` WHEN bootstrap finishes THEN its output contains the "configure `check-app`" notice. GIVEN a filled `check-app` THEN the notice is absent.
-- **AC-1-30** `make test-bootstrap` runs AC-1-27…29 and AC-1-34 in plain bash and is part of `check-harness`.
+- **AC-1-40** GIVEN agent selection `claude` and the answer "remove attribution" THEN the project's `.claude/settings.json` turns off commit and PR attribution. GIVEN the default answer, or template mode, THEN no attribution setting is written.
+- **AC-1-30** `make test-bootstrap` runs AC-1-27…29, AC-1-34 and AC-1-40 in plain bash and is part of `check-harness`.
 
 ### Capability: issue and PR templates
 

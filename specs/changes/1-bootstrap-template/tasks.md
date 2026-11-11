@@ -154,13 +154,14 @@ flowchart LR
 **Blocked by:** T4, T5, T6, T9.
 
 - [ ] Template mode, project mode, `--dry-run`, `--local`, `--add-agent`
-- [ ] Agent selection and deletion, plugin duplicate check, honor/strict detection, wizard-style human steps, `.template-version`, `.template-only` cleanup, final summary
+- [ ] Agent selection and deletion, AI-attribution question (default keep), plugin duplicate check, honor/strict detection, wizard-style human steps, `.template-version`, `.template-only` cleanup, final summary
 - [ ] `make test-bootstrap` wired into `check-harness`
 - [ ] AC-1-27 second dry run reports no changes
 - [ ] AC-1-28 each single-agent selection and all-four keep only the right files; symlinks resolve
 - [ ] AC-1-29 dry run prints every `gh api` call and writes nothing remotely
 - [ ] AC-1-30 `test-bootstrap` runs these in plain bash inside `check-harness`
 - [ ] AC-1-34 `check-app` notice shown only for the placeholder
+- [ ] AC-1-40 "remove attribution" turns it off in `.claude/settings.json`; default and template mode write nothing
 
 ## T11: README
 
