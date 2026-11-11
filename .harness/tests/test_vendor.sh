@@ -123,9 +123,9 @@ O
 }
 
 test_side_effect_skills_not_model_invoked() {
-  # AC-1-9 (finish is added by T3)
+  # AC-1-9
   local s fm
-  for s in to-spec to-tickets implement handoff pr retro; do
+  for s in to-spec to-tickets implement handoff pr finish retro; do
     fm=$(awk 'NR>1 && $0=="---" {exit} NR>1 {print}' "$HARNESS_ROOT/.agents/skills/$s/SKILL.md")
     grep -qx 'disable-model-invocation: true' <<<"$fm" || fail "$s: needs disable-model-invocation: true"
   done
@@ -140,9 +140,9 @@ test_code_review_docs_drift_rule() {
 }
 
 test_skills_draw_mermaid() {
-  # AC-1-32 (skills part; finish is added by T3)
+  # AC-1-32 (skills part)
   local s
-  for s in to-spec domain-modeling; do
+  for s in to-spec domain-modeling finish; do
     grep -q 'Mermaid code block' "$HARNESS_ROOT/.agents/skills/$s/SKILL.md" || fail "$s: no Mermaid instruction"
   done
 }
@@ -151,4 +151,33 @@ test_no_tracker_setup_references() {
   # R2: tracker-setup is not vendored; no skill may send the user to it.
   local hits; hits=$(grep -rl 'setup-matt-pocock-skills' "$HARNESS_ROOT/.agents/skills" || true)
   assert_eq "$hits" '' 'skills that still name /setup-matt-pocock-skills'
+}
+
+test_finish_skill_steps() {
+  # AC-1-10
+  local d=$HARNESS_ROOT/.agents/skills/finish f
+  assert_file "$d/SKILL.md"
+  f=$(cat "$d/SKILL.md")
+  assert_eq "$(grep -cE '^## [1-5]\. ' "$d/SKILL.md")" 5 'five numbered steps'
+  # R3 step 1: verify tasks and AC coverage, stop on failure.
+  assert_contains "$f" '## 1. Verify'
+  assert_contains "$f" 'AC-<id>-<n>'
+  # R3 step 2: apply deltas, archive with the folder name change-folders.sh accepts.
+  assert_contains "$f" '## 2. Archive'
+  assert_contains "$f" 'ADDED/MODIFIED/REMOVED'
+  assert_contains "$f" 'specs/changes/archive/YYYY-MM-DD-<id>-<slug>/'
+  # R3 step 3: ADRs through domain-modeling, glossary, PR ADR field.
+  assert_contains "$f" '## 3. Record decisions'
+  assert_contains "$f" 'domain-modeling'
+  assert_contains "$f" 'GLOSSARY.md'
+  assert_contains "$f" 'ADR:'
+  # R3 step 4: release check, hands off CHANGELOG and the release PR.
+  assert_contains "$f" '## 4. Check the release'
+  assert_contains "$f" 'Conventional Commit'
+  assert_contains "$f" 'CHANGELOG.md'
+  # R3 step 5: issue and retro.
+  assert_contains "$f" '## 5. Close the loop'
+  assert_contains "$f" 'retro'
+  assert_contains "$(cat "$d/agents/openai.yaml")" 'allow_implicit_invocation: false'
+  grep -q -- '^- `finish`' "$HARNESS_ROOT/.agents/skills/VENDORED.md" || fail 'finish not listed as an original skill'
 }

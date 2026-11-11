@@ -26,3 +26,5 @@ Third-party skills copied into `.agents/skills/` at a pinned commit. `make vendo
 ## Original skills
 
 Skills written for this repo. They have no upstream.
+
+- `finish`: closes an M/L change inside its PR (R3).

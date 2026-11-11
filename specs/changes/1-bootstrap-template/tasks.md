@@ -63,9 +63,9 @@ flowchart LR
 
 **Blocked by:** T2.
 
-- [ ] `.agents/skills/finish/SKILL.md` with the five R3 steps, Mermaid instruction for ADRs, `disable-model-invocation: true`
-- [ ] AC-1-10 `finish` exists and has the five steps
-- [ ] AC-1-32 (finish part) ADR step instructs Mermaid diagrams
+- [x] `.agents/skills/finish/SKILL.md` with the five R3 steps, Mermaid instruction for ADRs, `disable-model-invocation: true`
+- [x] AC-1-10 `finish` exists and has the five steps
+- [x] AC-1-32 (finish part) ADR step instructs Mermaid diagrams
 
 ## T4: Claude configuration and hooks
 
