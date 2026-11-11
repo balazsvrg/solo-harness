@@ -267,6 +267,7 @@ Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--lo
 ## Out of scope (deferred)
 
 - **Required signed commits** — remind the owner to build this as a follow-up change.
+- **Parallel agents for frontier tickets** — run agents in parallel for tickets that are not blocked and share no files, each in its own worktree, only after the owner approves each run. Reverses decision 2 for implementation, so it needs an ADR.
 - AI review in CI (Claude Code Action with OAuth token), devcontainer with egress firewall, metrics workflow (tier C).
 - Stack overlays (TypeScript, Python, …).
 - "Update from template" mechanism (`.template-version` prepares for it).
