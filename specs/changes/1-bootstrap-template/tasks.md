@@ -24,22 +24,22 @@ flowchart LR
 
 **Blocked by:** none (cold start, built by hand).
 
-- [ ] `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` symlinks, `docs/{product,architecture}.md` (architecture with a Mermaid skeleton), `docs/adr/`, `GLOSSARY.md`, `specs/`, `.gitignore`, `LICENSE` (MIT), `.template-only`
-- [ ] `.harness/tools.lock`, `scripts/install-tools` (install + `--update`), `make tools`
-- [ ] AC-1-37 hash mismatch deletes the file and fails
-- [ ] AC-1-38 `--update` rewrites only the named tool's lines with correct hashes
-- [ ] `.harness/config` (`HARNESS_PATHS`, `TEST_GLOBS`, size limits), `.harness/lib/common.sh`, `.harness/tests/run.sh`, `.harness/tests/lib/assert.sh`
-- [ ] `Makefile` with `check`, `check-harness`, `check-app` (placeholder marker), `fmt` (no-op), `test-harness`
-- [ ] `.harness/check/{symlinks,agents-md,skills-frontmatter,change-folders,markdown}.sh` and shellcheck/actionlint wiring
-- [ ] AC-1-1 symlinks resolve
-- [ ] AC-1-2 `AGENTS.md` ≤ 60 lines
-- [ ] AC-1-3 `AGENTS.md` content (check command, S/M/L, skills pointer, no ALL-CAPS)
-- [ ] AC-1-4 model advice present, no model pinned in any agent config
-- [ ] AC-1-8 skill frontmatter validation (tested with fixture skills)
-- [ ] AC-1-15 `make check` passes with no app source
-- [ ] AC-1-16 `make check` fails with `src/main.py` and the placeholder; also with only `tests/test_api.py`
-- [ ] AC-1-31 unterminated Mermaid fence fails
-- [ ] AC-1-33 embedded image under `docs/`/`specs/` fails
+- [x] `AGENTS.md`, `CLAUDE.md`/`GEMINI.md` symlinks, `docs/{product,architecture}.md` (architecture with a Mermaid skeleton), `docs/adr/`, `GLOSSARY.md`, `specs/`, `.gitignore`, `LICENSE` (MIT), `.template-only`
+- [x] `.harness/tools.lock`, `scripts/install-tools` (install + `--update`), `make tools`
+- [x] AC-1-37 hash mismatch deletes the file and fails
+- [x] AC-1-38 `--update` rewrites only the named tool's lines with correct hashes
+- [x] `.harness/config` (`HARNESS_PATHS`, `TEST_GLOBS`, size limits), `.harness/lib/common.sh`, `.harness/tests/run.sh`, `.harness/tests/lib/assert.sh`
+- [x] `Makefile` with `check`, `check-harness`, `check-app` (placeholder marker), `fmt` (no-op), `test-harness`
+- [x] `.harness/check/{symlinks,agents-md,skills-frontmatter,change-folders,markdown}.sh` and shellcheck/actionlint wiring
+- [x] AC-1-1 symlinks resolve
+- [x] AC-1-2 `AGENTS.md` ≤ 60 lines
+- [x] AC-1-3 `AGENTS.md` content (check command, S/M/L, skills pointer, no ALL-CAPS)
+- [x] AC-1-4 model advice present, no model pinned in any agent config
+- [x] AC-1-8 skill frontmatter validation (tested with fixture skills)
+- [x] AC-1-15 `make check` passes with no app source
+- [x] AC-1-16 `make check` fails with `src/main.py` and the placeholder; also with only `tests/test_api.py`
+- [x] AC-1-31 unterminated Mermaid fence fails
+- [x] AC-1-33 embedded image under `docs/`/`specs/` fails
 
 ## T2: Vendor skills and license notices
 

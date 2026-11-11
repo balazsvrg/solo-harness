@@ -1,0 +1,33 @@
+# shellcheck shell=bash
+# Assertions for harness tests. Each prints a reason and returns 1 on failure.
+
+fail() { printf '  %s\n' "$*" >&2; return 1; }
+
+assert_eq() { [[ $1 == "$2" ]] || fail "expected '$2', got '$1'${3:+ ($3)}"; }
+assert_contains() { [[ $1 == *"$2"* ]] || fail "expected output to contain '$2'; got: ${1:0:500}"; }
+assert_not_contains() { [[ $1 != *"$2"* ]] || fail "expected output not to contain '$2'"; }
+assert_file() { [[ -e $1 ]] || fail "missing file: $1"; }
+assert_no_file() { [[ ! -e $1 ]] || fail "file should not exist: $1"; }
+
+# assert_status CODE CMD...: run CMD, compare its exit code. Output goes to $OUT.
+assert_status() {
+  local want=$1 got; shift
+  OUT=$("$@" 2>&1) && got=0 || got=$?
+  [[ $got == "$want" ]] || fail "exit $got, want $want: $* -> ${OUT:0:800}"
+}
+
+# new_repo: make an empty git repo in a fresh temp dir and print its path.
+new_repo() {
+  local d
+  d=$(mktemp -d "$TEST_TMP/repo.XXXXXX")
+  git -C "$d" init -q
+  printf '%s\n' "$d"
+}
+
+# copy_repo: copy the working tree under test (with .git) to a temp dir.
+copy_repo() {
+  local d
+  d=$(mktemp -d "$TEST_TMP/copy.XXXXXX")
+  cp -a "$HARNESS_ROOT/." "$d/"
+  printf '%s\n' "$d"
+}

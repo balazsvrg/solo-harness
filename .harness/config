@@ -1,0 +1,18 @@
+# shellcheck shell=bash
+# solo-harness settings. Every harness script sources this file.
+# Overlays and projects may edit the values; keep the variable names.
+
+# Paths that belong to the harness. Any other file is app source.
+HARNESS_DIRS=(.agents .claude .codex .gemini .github .githooks .harness .scratch docs specs scripts)
+# Root-level files that belong to the harness (globs, matched at the repo root only).
+HARNESS_ROOT_FILES=('*.md' 'Makefile' 'LICENSE' 'version.txt' 'release-please-config.json' '.*')
+
+# Files that count as tests. Read by docs-gate, test-oracle and check-app.
+TEST_GLOBS=('**/test_*.*' '**/*_test.*' '**/*.test.*' '**/*.spec.*' 'tests/**' 'test/**' '__tests__/**' '.harness/tests/**')
+
+# Size limits.
+AGENTS_MD_MAX_LINES=60
+PR_SIZE_MAX_LINES=400
+S_SIZE_MAX_LINES=150
+# Files that pr-size and the S-size limit do not count.
+SIZE_EXCLUDE_GLOBS=('**/package-lock.json' '**/pnpm-lock.yaml' '**/yarn.lock' '**/*.lock' '**/go.sum' 'specs/changes/archive/**')
