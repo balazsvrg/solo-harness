@@ -2,7 +2,7 @@
 # Tests for make check and the check-app placeholder (R10).
 
 test_check_passes_without_app_source() {
-  # AC-1-15
+  # AC-1-15, AC-1-17: the template has no app source, so make check (as run by CI's check job) passes.
   local r; r=$(copy_repo)
   assert_status 0 env HARNESS_NESTED=1 make -s -C "$r" check
   assert_contains "$OUT" 'no app checks configured'

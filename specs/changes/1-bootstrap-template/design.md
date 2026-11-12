@@ -51,10 +51,10 @@ flowchart LR
 Makefile                      # check, check-harness, check-app, fmt, tools, test-harness, vendor-diff, test-bootstrap
 scripts/                      # only commands the owner runs directly
   bootstrap                   # R18
-  install-tools               # installs pinned binaries into .harness/bin; --update <name|all> rewrites tools.lock
+  install-tools               # installs pinned binaries into .harness/bin; --update <name|all> rewrites tools.lock; --outdated lists stale pins
   vendor-diff                 # AC-1-7
 .harness/                     # all harness internals; ships to every project
-  config                      # shell-sourceable settings: HARNESS_PATHS, TEST_GLOBS, size limits
+  config                      # shell-sourceable settings: HARNESS_PATHS, TEST_GLOBS, ORACLE_GLOBS, size limits
   tools.lock                  # name, version, url template, sha256 per OS/arch
   bin/                        # gitignored; pinned tool binaries
   lib/
@@ -80,21 +80,23 @@ scripts/                      # only commands the owner runs directly
 ## 4. Testing strategy
 
 - `.harness/tests/run.sh` is a ~60-line runner, invoked by `make test-harness` (part of `check-harness`). Each test is a bash function named `test_<what>`. The first line of each test is a comment naming the criterion it covers, e.g. `# AC-1-35`. This is what `docs-gate` greps for (AC-1-23), so this change proves its own gate.
-- Every criterion `AC-1-1` … `AC-1-40` has at least one test.
+- Every criterion `AC-1-1` … `AC-1-41` has at least one test.
 - Content criteria (e.g. AC-1-3, AC-1-10) are tested by asserting on required headings or lines, not on exact prose.
-- CI gates are tested by calling `.harness/ci/*.sh` with fixtures: a PR body file, a list of changed files with line counts, and labels. The scripts take these as arguments or environment variables, never by calling the GitHub API themselves. The workflows gather the data and pass it in.
+- CI gates are tested by calling `.harness/ci/*.sh` with fixtures: a PR body file, a list of changed files with line counts, and labels. The scripts take these as arguments or environment variables, never by calling the GitHub API themselves. The workflows gather the data and pass it in: the changed files are a `git diff --numstat -z --no-renames` file given as the first argument (`-z` keeps unusual paths unquoted), and the labels are `PR_LABELS` (comma-separated). Shared input helpers live in `.harness/lib/common.sh`. The gate tests write their small numstat inputs inline; PR-body fixtures go in `.harness/tests/fixtures/`.
 - Hooks are tested by piping the JSON Claude Code would send on stdin and asserting on the exit code and output.
 - `make test-bootstrap` copies the repo to a temp dir with `cp -a`, runs `scripts/bootstrap --dry-run --local` and `--local` with scripted answers (`BOOTSTRAP_ANSWERS` env var), and asserts the resulting tree.
 
 ## 5. Harness boundary and test files
 
-`.harness/config` is the single place for two path definitions. Every script sources it, so no two gates can disagree.
+`.harness/config` is the single place for the path definitions below. Every script sources it, so no two gates can disagree.
 
 - **`HARNESS_PATHS`**: `.agents .claude .codex .gemini .github .githooks .harness .scratch docs specs scripts` plus root files (`*.md`, `Makefile`, `.docs-map`, `.template-*`, `version.txt`, release-please files, `LICENSE`, dotfiles). Any tracked file outside this set is **app source**. The placeholder `check-app` fails once app source exists (AC-1-16). A project that only adds `tests/test_api.py` therefore trips it too.
 - **`TEST_GLOBS`**: `**/test_*.* **/*_test.* **/*.test.* **/*.spec.* tests/** test/** __tests__/** .harness/tests/**`. Overlays narrow it to their stack. Three consumers read it:
   - `docs-gate` searches only these files for `AC-<id>-<n>` (AC-1-23).
   - `test-oracle` treats a change to any matching file as a test change.
   - `check-app` counts matching files outside `.harness/` as app source.
+
+- **`ORACLE_GLOBS`**: snapshots (`**/__snapshots__/**`, `**/*.snap`), workflows and actions under `.github/`, `.harness/ci/**`, `.harness/config`, `.harness/lib/**` and `.harness/tools.lock`. `test-oracle` treats a change to these files like a test change, because each one changes what counts as correct.
 
 `pr-size` has its own exclusions (lockfiles, `specs/changes/archive/`), also defined in `.harness/config`.
 
@@ -115,7 +117,7 @@ All three Claude hooks read the hook JSON from stdin with `python3`, and print n
 
   An unparsable command or hook input exits 2 (fail-closed).
 
-  **Limit:** the guard reads the command text. It cannot see commands that the shell builds at run time: command substitution (`$(echo git) push`), variables (`g=git; $g push`), git aliases (`git -c alias.p=push p`), process substitution (`bash <(curl …)`) a download piped into an interpreter other than a shell (`curl … | python3`), literal text piped into a shell (`echo "git push" | bash`), or a file write by a general interpreter (`python3 -c`, `node -e`). It is a backstop for the deny rules, not a sandbox. The git hooks, CI and the ruleset are the layers that hold when it misses.
+  **Limit:** the guard reads the command text. It cannot see commands that the shell builds at run time: command substitution (`$(echo git) push`), variables (`g=git; $g push`), git aliases (`git -c alias.p=push p`), process substitution (`bash <(curl …)`), a download piped into an interpreter other than a shell (`curl … | python3`), literal text piped into a shell (`echo "git push" | bash`), or a file write by a general interpreter (`python3 -c`, `node -e`). It is a backstop for the deny rules, not a sandbox. The git hooks, CI and the ruleset are the layers that hold when it misses.
 - **`fmt.sh`** runs `make -s fmt FILE=<path>` and always exits 0. Its matcher is `Edit|Write|MultiEdit`: `MultiEdit` is a third file-editing tool, so R7's `Edit|Write` would miss its edits. A formatter failure is not worth blocking an edit; `check` catches it.
 - **`stop-check.sh`** follows R7. Claude Code has no `onFailure` setting: exit 2 is how a Stop hook blocks, and its stderr goes back to the agent. It reads `stop_hook_active` from the input and exits 0 when it is true, which prevents an infinite Stop loop.
 

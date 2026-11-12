@@ -75,3 +75,23 @@ is_app_source() {
   is_harness_path "$p" || return 0
   [[ $p != .harness/* ]] && is_test_path "$p"
 }
+
+# --- CI gate input (.harness/ci/*.sh) ---------------------------------------
+# A changes file is `git diff --numstat -z --no-renames` output: one record
+# ADDED<TAB>DELETED<TAB>PATH<NUL> per file. -z keeps paths unquoted. Binary files
+# show "-" for both counts. Labels come from PR_LABELS (comma-separated).
+
+# load_changes FILE: fill CHANGE_PATHS and CHANGE_LINES (added + deleted, 0 for
+# binary files). Exit 2 with a usage message unless FILE is readable.
+load_changes() {
+  [[ -n ${1:-} && -r $1 ]] || { err "usage: ${0##*/} CHANGES_FILE (git diff --numstat -z --no-renames output)"; exit 2; }
+  CHANGE_PATHS=() CHANGE_LINES=()
+  local added deleted path
+  while IFS=$'\t' read -r -d '' added deleted path; do
+    CHANGE_PATHS+=("$path")
+    if [[ $added == - ]]; then CHANGE_LINES+=(0); else CHANGE_LINES+=($((added + deleted))); fi
+  done < "$1"
+}
+
+# has_label NAME: true if PR_LABELS contains NAME exactly.
+has_label() { [[ ",${PR_LABELS:-}," == *",$1,"* ]]; }

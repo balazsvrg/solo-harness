@@ -9,6 +9,10 @@ HARNESS_ROOT_FILES=('*.md' 'Makefile' 'LICENSE' 'version.txt' 'release-please-co
 
 # Files that count as tests. Read by docs-gate, test-oracle and check-app.
 TEST_GLOBS=('**/test_*.*' '**/*_test.*' '**/*.test.*' '**/*.spec.*' 'tests/**' 'test/**' '__tests__/**' '.harness/tests/**')
+# Files that, like tests, decide whether a change is correct. test-oracle requires a specs/
+# change when a PR touches TEST_GLOBS or these: snapshots, workflows, CI config, the gate
+# settings in this file and their shared code, pinned tools.
+ORACLE_GLOBS=('**/__snapshots__/**' '**/*.snap' '.github/workflows/**' '.github/actions/**' '.harness/ci/**' '.harness/config' '.harness/lib/**' '.harness/tools.lock')
 
 # Size limits.
 AGENTS_MD_MAX_LINES=60

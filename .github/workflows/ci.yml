@@ -1,0 +1,136 @@
+# Required checks for every pull request (R12). The job ids are the check names
+# in .github/ruleset.json. Do not rename a job without changing the ruleset.
+name: ci
+
+on:
+  pull_request:
+    # edited: body checks rerun; labeled/unlabeled: the size-exception label takes effect.
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: make check
+
+  pr-title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          version: 1.32.0
+          advanced-security: false
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: make tools
+      # The checkout is the PR merge commit: HEAD^1 is the base, HEAD^2 the PR head.
+      - run: .harness/bin/gitleaks git --no-banner --redact --log-opts="HEAD^1..HEAD^2" .
+
+  deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      # Private repos on GitHub Free have no dependency graph, so scan the manifests instead.
+      - if: ${{ github.event.repository.private }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: ${{ github.event.repository.private }}
+        run: |
+          make tools
+          rc=0
+          .harness/bin/osv-scanner scan source -r . || rc=$?
+          # 128: no package manifests found, so there is nothing to scan.
+          if [ "$rc" = 128 ]; then echo 'osv-scanner: no package manifests'; exit 0; fi
+          exit "$rc"
+
+  pr-size:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
+          .harness/ci/pr-size.sh "$RUNNER_TEMP/changes"
+
+  test-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - run: |
+          git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
+          .harness/ci/test-oracle.sh "$RUNNER_TEMP/changes"
+
+  # Advice only (AC-1-11): never a required check.
+  ste-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .agents/skills/asd-ste100/scripts
+          persist-credentials: false
+      - env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/body.md"
+          if ! python3 .agents/skills/asd-ste100/scripts/ste-lint.py "$RUNNER_TEMP/body.md"; then
+            echo '::warning title=ste-lint::The PR description has STE findings. See the job log.'
+          fi

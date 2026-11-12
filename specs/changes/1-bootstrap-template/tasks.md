@@ -113,14 +113,14 @@ flowchart LR
 
 **Blocked by:** T1.
 
-- [ ] `.github/workflows/ci.yml` with jobs `check`, `pr-title`, `zizmor`, `secrets`, `deps` (public/private switch), `pr-size`, `test-oracle`, `ste-lint` (non-blocking)
-- [ ] `.harness/ci/{pr-size,test-oracle}.sh` with fixture tests; test-oracle reads `TEST_GLOBS` and also trips on `.harness/tools.lock`
-- [ ] `.github/workflows/tools-outdated.yml` (monthly, report-only)
-- [ ] AC-1-39 `tools-outdated` permissions and triggers
-- [ ] All actions pinned to SHAs; job-level `permissions:`; no `pull_request_target`
-- [ ] AC-1-11 `ste-lint` job is non-blocking
-- [ ] AC-1-17 template CI runs `check-harness` only
-- [ ] Tests for pr-size (400 lines, exclusions, `size-exception`) and test-oracle (fails without `specs/` change)
+- [x] `.github/workflows/ci.yml` with jobs `check`, `pr-title`, `zizmor`, `secrets`, `deps` (public/private switch), `pr-size`, `test-oracle`, `ste-lint` (non-blocking)
+- [x] `.harness/ci/{pr-size,test-oracle}.sh` with fixture tests; test-oracle reads `TEST_GLOBS` and also trips on `.harness/tools.lock`
+- [x] `.github/workflows/tools-outdated.yml` (monthly, report-only)
+- [x] AC-1-39 `tools-outdated` permissions and triggers
+- [x] All actions pinned to SHAs; job-level `permissions:`; no `pull_request_target`
+- [x] AC-1-11 `ste-lint` job is non-blocking
+- [x] AC-1-17 the `check` job runs `make check`; in the template `check-app` passes (no app source)
+- [x] Tests for pr-size (400 lines, exclusions, `size-exception`) and test-oracle (fails without `specs/` change)
 
 ## T8: Documentation gate, PR and issue templates
 

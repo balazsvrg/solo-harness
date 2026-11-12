@@ -4,6 +4,7 @@
 # Usage:
 #   scripts/install-tools                 install or refresh tools for this platform
 #   scripts/install-tools --update NAME   pin the latest release of NAME (or "all")
+#   scripts/install-tools --outdated      list pinned tools that have a newer release
 #
 # Every download is checked against the SHA-256 in tools.lock. On a mismatch the
 # file is deleted and the script fails. --update reads releases with `gh api` and
@@ -126,6 +127,22 @@ update_tool() {
   printf '%s pinned at %s\n' "$t" "$version"
 }
 
+# list_outdated: print "- NAME: pinned X, latest Y" for each stale tool. No output = all current.
+list_outdated() {
+  local name version rest tag seen=' ' rc=0
+  [[ -f $TOOLS_LOCK ]] || { err "missing $TOOLS_LOCK"; return 1; }
+  while read -r name version rest; do
+    [[ -z $name || $name == \#* || $seen == *" $name "* ]] && continue
+    seen+="$name "
+    [[ -n ${REPO[$name]:-} ]] || { err "unknown tool: $name"; rc=1; continue; }
+    tag=$(fetch_latest_version "${REPO[$name]}") || { err "$name: cannot read latest release"; rc=1; continue; }
+    # Stale only if the latest release sorts after the pin as a version, not as text.
+    [[ ${tag#v} != "$version" && $(printf '%s\n' "$version" "${tag#v}" | sort -V | tail -n1) == "${tag#v}" ]] &&
+      printf -- '- %s: pinned %s, latest %s\n' "$name" "$version" "${tag#v}"
+  done < "$TOOLS_LOCK"
+  return $rc
+}
+
 main() {
   case ${1:-} in
     '') install_all ;;
@@ -136,7 +153,8 @@ main() {
       else
         update_tool "$2"
       fi ;;
-    -h | --help) sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+    --outdated) list_outdated ;;
+    -h | --help) sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
     *) err "unknown argument: $1"; return 2 ;;
   esac
 }
