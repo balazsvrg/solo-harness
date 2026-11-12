@@ -34,6 +34,7 @@ flowchart LR
 - [x] AC-1-1 symlinks resolve
 - [x] AC-1-2 `AGENTS.md` ≤ 60 lines
 - [x] AC-1-3 `AGENTS.md` content (check command, S/M/L, skills pointer, no ALL-CAPS)
+- [x] AC-1-41 `AGENTS.md` code-review rule (once per ticket and PR, never skipped, no repeat unless asked)
 - [x] AC-1-4 model advice present, no model pinned in any agent config
 - [x] AC-1-8 skill frontmatter validation (tested with fixture skills)
 - [x] AC-1-15 `make check` passes with no app source

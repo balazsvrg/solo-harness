@@ -84,3 +84,12 @@ test_change_folders() {
   assert_status 1 check change-folders "$r"
   assert_contains "$OUT" Bad_Name
 }
+
+test_agents_md_code_review_rule() {
+  # AC-1-41
+  assert_status 0 check agents-md "$HARNESS_ROOT"
+  local r; r=$(new_repo)
+  grep -v 'Never skip it' "$HARNESS_ROOT/AGENTS.md" > "$r/AGENTS.md"
+  assert_status 1 check agents-md "$r"
+  assert_contains "$OUT" 'Never skip it'
+}

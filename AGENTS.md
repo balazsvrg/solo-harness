@@ -12,7 +12,7 @@ This repo uses the solo-harness workflow. One owner, one main agent, small test-
 
 Propose a size. The owner confirms it.
 
-- **S**: no new or changed requirement (bugfix, chore, refactor, docs, dependency bump). Path: `implement` + `tdd`, then `pr`.
+- **S**: no new or changed requirement (bugfix, chore, refactor, docs, dependency bump). Path: `implement` + `tdd`, `code-review`, then `pr`.
 - **M**: new or changed behaviour inside one capability. Path: `grill-with-docs`, `to-spec`, owner approves the proposal, `to-tickets`, owner approves the tasks, `handoff`, `implement` + `tdd` in a fresh session, `code-review`, `finish`, `pr`.
 - **L**: spans capabilities or makes a hard-to-reverse choice. As M, plus `design.md` and an ADR.
 
@@ -29,6 +29,7 @@ Propose a size. The owner confirms it.
 - Write the test first. Each test names the criterion it covers on its first line, for example `# AC-12-3`.
 - Commit messages and PR titles follow Conventional Commits.
 - Never merge a PR, push to `main` or skip hooks. The owner merges.
+- Run `code-review` once at the end of every ticket and before every PR. Never skip it. After you fix its findings, do not review again unless the owner asks.
 - Draw every diagram as a Mermaid code block. No image files, no ASCII art.
 - Text for another agent (handoffs, review findings) uses the `asd-ste100` skill in strict mode.
 

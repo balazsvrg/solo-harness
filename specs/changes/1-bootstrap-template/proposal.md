@@ -35,11 +35,13 @@ Token economy is a design constraint throughout: no MCP servers, a short `AGENTS
 
 | Size | Definition | Path |
 |---|---|---|
-| **S** | No new or changed requirement: bugfix against existing spec, chore, refactor, docs, dependency bump | (optional issue) → `implement` + `tdd` → PR |
+| **S** | No new or changed requirement: bugfix against existing spec, chore, refactor, docs, dependency bump | (optional issue) → `implement` + `tdd` → `code-review` → PR |
 | **M** | New or changed behaviour inside one capability | issue → `grill-with-docs` → `to-spec` → **owner approves proposal** → `to-tickets` → **owner approves tasks** → `handoff` → fresh session `implement` (+ `tdd`) → `code-review` → `finish` → `pr` |
 | **L** | Spans capabilities, or makes an architectural / hard-to-reverse choice | As M, plus `design.md` and an expected ADR |
 
 The agent proposes the size. The owner confirms it.
+
+`code-review` runs once at the end of every ticket and before every PR, for every size. It is never skipped to save tokens. After its findings are fixed, it does not run again unless the owner asks: repeated passes always find something, and the value drops with each pass.
 
 ## Requirements
 
@@ -71,6 +73,7 @@ LICENSE (MIT)   THIRD_PARTY_LICENSES.md   README.md
 - **AC-1-1** GIVEN a fresh clone WHEN `make check-harness` runs THEN every symlink above resolves to an existing target.
 - **AC-1-2** GIVEN `AGENTS.md` WHEN `check-harness` runs THEN it fails if the file exceeds 60 lines.
 - **AC-1-3** `AGENTS.md` names `make check` as the verification command, describes S/M/L, and points to the skills. It contains no ALL-CAPS emphasis.
+- **AC-1-41** `AGENTS.md` says to run `code-review` once at the end of every ticket and before every PR, never to skip it, and not to repeat it unless the owner asks.
 - **AC-1-4** `AGENTS.md` suggests "plan with the strongest model, implement with the default" as advice. No agent config pins a model.
 
 ### Capability: skills
