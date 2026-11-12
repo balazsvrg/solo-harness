@@ -73,15 +73,15 @@ flowchart LR
 
 **Blocked by:** T1, T2.
 
-- [ ] `.claude/settings.json`: R6 deny/ask/allow (incl. ask on `.harness/tools.lock`), hooks registration, sandbox off
-- [ ] `.claude/hooks/{guard-bash,fmt,stop-check}.sh` (guard derived from Pocock's `git-guardrails-claude-code`, recorded in `VENDORED.md`)
-- [ ] `.claude/agents/reviewer.md` (read-only tools)
-- [ ] `.harness/check/deny-rules.sh`
-- [ ] AC-1-12 deny-rule presence check
-- [ ] AC-1-13 Stop hook no-op on clean tree
-- [ ] AC-1-14 Stop hook exits 2 with ≤ 40 lines on failing check
-- [ ] AC-1-35 guard blocks the eight listed commands, allows the two safe ones
-- [ ] AC-1-36 `fmt.sh` silent no-op
+- [x] `.claude/settings.json`: R6 deny/ask/allow (incl. ask on `.harness/tools.lock`), hooks registration, sandbox off
+- [x] `.claude/hooks/{guard-bash,fmt,stop-check}.sh` (guard derived from Pocock's `git-guardrails-claude-code`, recorded in `VENDORED.md`)
+- [x] `.claude/agents/reviewer.md` (read-only tools)
+- [x] `.harness/check/deny-rules.sh`
+- [x] AC-1-12 deny-rule presence check
+- [x] AC-1-13 Stop hook no-op on clean tree
+- [x] AC-1-14 Stop hook exits 2 with ≤ 40 lines on failing check
+- [x] AC-1-35 guard blocks the eight listed commands, allows the two safe ones
+- [x] AC-1-36 `fmt.sh` silent no-op
 
 ## T5: Codex, Copilot and Gemini configuration
 

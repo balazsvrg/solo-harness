@@ -4,7 +4,7 @@ SHELL := bash
 .DEFAULT_GOAL := check
 export PATH := $(CURDIR)/.harness/bin:$(PATH)
 
-HARNESS_CHECKS := symlinks agents-md skills-frontmatter change-folders markdown vendored
+HARNESS_CHECKS := symlinks agents-md skills-frontmatter change-folders markdown vendored deny-rules
 
 .PHONY: check check-harness check-app fmt tools test-harness vendor-diff
 

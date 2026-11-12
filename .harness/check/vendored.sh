@@ -41,6 +41,15 @@ for d in "$skills"/*/; do
   [[ -n ${row[$s]:-} ]] || grep -qx -- "$s" <<<"$original" || bad "VENDORED.md: $s: no row (vendored) and not listed under Original skills"
 done
 
+# Derived files are listed as "- `path`: ..." under "## Derived files". Each must
+# exist and be named in THIRD_PARTY_LICENSES.md.
+# shellcheck disable=SC2016 # backticks are literal
+derived=$(awk '/^## /{on = ($0 ~ /^## Derived files/)} on && /^- `/' "$vendored" | grep -oE '^- `[^`]+`' | cut -d'`' -f2 || true)
+for p in $derived; do
+  [[ -e $root/$p ]] || bad "VENDORED.md: derived file $p does not exist"
+  grep -qF "\`$p\`" "$licenses" 2>/dev/null || bad "THIRD_PARTY_LICENSES.md: derived file $p not listed"
+done
+
 if (( ${#row[@]} )); then
   [[ -f $licenses ]] || die "THIRD_PARTY_LICENSES.md: missing"
   for src in $(printf '%s\n' "${source_of[@]}" | sort -u); do

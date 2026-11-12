@@ -181,3 +181,17 @@ test_finish_skill_steps() {
   assert_contains "$(cat "$d/agents/openai.yaml")" 'allow_implicit_invocation: false'
   grep -q -- '^- `finish`' "$HARNESS_ROOT/.agents/skills/VENDORED.md" || fail 'finish not listed as an original skill'
 }
+
+test_derived_files_recorded() {
+  # AC-1-5, AC-1-6 (derived files): guard-bash.sh is recorded; a missing file or notice fails.
+  assert_contains "$(cat "$HARNESS_ROOT/.agents/skills/VENDORED.md")" '- `.claude/hooks/guard-bash.sh`: from mattpocock/skills'
+  local r; r=$(fixture_repo)
+  printf '\n## Derived files\n\n- `hooks/x.sh`: from acme/skills, x.sh at %s, MIT. Changed.\n' "$SHA" >> "$r/.agents/skills/VENDORED.md"
+  assert_status 1 vcheck "$r"
+  assert_contains "$OUT" 'derived file hooks/x.sh does not exist'
+  mkdir -p "$r/hooks"; touch "$r/hooks/x.sh"
+  assert_status 1 vcheck "$r"
+  assert_contains "$OUT" 'THIRD_PARTY_LICENSES.md: derived file hooks/x.sh not listed'
+  echo 'Derived file: `hooks/x.sh`.' >> "$r/THIRD_PARTY_LICENSES.md"
+  assert_status 0 vcheck "$r"
+}

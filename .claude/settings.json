@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(git push * main)",
+      "Bash(git push * main *)",
+      "Bash(git push *:main)",
+      "Bash(git push *:main *)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(gh pr merge)",
+      "Bash(gh pr merge *)",
+      "Bash(gh release create *)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit * --no-verify*)",
+      "Read(./.env*)",
+      "Read(**/.env*)",
+      "Read(~/.ssh/**)",
+      "Edit(./.claude/settings*.json)",
+      "Edit(./.codex/**)",
+      "Edit(./.gemini/**)",
+      "Edit(./.githooks/**)"
+    ],
+    "ask": [
+      "Edit(./.github/workflows/**)",
+      "Edit(./Makefile)",
+      "Edit(./CODEOWNERS)",
+      "Edit(./.github/CODEOWNERS)",
+      "Edit(./.harness/tools.lock)",
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npm add *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm install*)",
+      "Bash(yarn add *)",
+      "Bash(yarn install*)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(uv add *)",
+      "Bash(uv pip install *)",
+      "Bash(cargo add *)",
+      "Bash(cargo install *)",
+      "Bash(go get *)",
+      "Bash(go install *)",
+      "Edit(./.claude/hooks/**)",
+      "Edit(./.harness/check/deny-rules.sh)",
+      "Bash(npm i)",
+      "Bash(pnpm i)",
+      "Bash(pnpm i *)",
+      "Bash(yarn)",
+      "Bash(uv tool install *)",
+      "Bash(uv sync*)",
+      "Bash(python* -m pip install *)",
+      "Bash(yarn global add *)",
+      "Bash(npm ci*)",
+      "Bash(pnpm i *)"
+    ],
+    "allow": [
+      "Bash(make)",
+      "Bash(make *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git blame*)",
+      "Bash(git rev-parse*)",
+      "Bash(git ls-files*)",
+      "Bash(git branch --show-current)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh issue *)",
+      "Bash(gh pr create)"
+    ]
+  },
+  "sandbox": {
+    "enabled": false
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fmt.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-check.sh", "timeout": 300 }
+        ]
+      }
+    ]
+  }
+}

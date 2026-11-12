@@ -104,9 +104,20 @@ A filled `check-app` is detected by the absence of the marker line `# solo-harne
 
 All three Claude hooks read the hook JSON from stdin with `python3`, and print nothing on success.
 
-- **`guard-bash.sh`** normalizes the command (collapses whitespace, splits on `;`, `&&`, `||`, `|`) and matches each segment against a pattern list. Pocock's original covers `push --force`, `reset --hard` and similar; we add the AC-1-35 cases. Any parse error exits 2 (fail-closed).
-- **`fmt.sh`** runs `make -s fmt FILE=<path>` and always exits 0. A formatter failure is not worth blocking an edit; `check` catches it.
-- **`stop-check.sh`** follows R7. It reads `stop_hook_active` from the input and exits 0 when it is true, which prevents an infinite Stop loop.
+- **`guard-bash.sh`** tokenizes the command with Python `shlex` (quotes respected) and splits it on `;`, `&&`, `||`, `|`, `&`, newlines and parentheses. A quote-aware pass runs first: it removes comments and heredoc bodies (data, not code) and turns unquoted newlines and backticks into separators. `$(…)` and backtick commands inside words, and `<(…)`, are checked recursively. It strips `VAR=value` prefixes (blocking any that set `core.hooksPath`, such as `GIT_CONFIG_KEY_0`), shell keywords (`{`, `if`, `then`, `do`, …), `function NAME` and wrapper commands with their options (`env`, `sudo`, `nice`, `timeout`, `xargs`, `nohup`, …), and checks the script of `bash -c`/`-lc`/`-xc` and `eval` recursively. Git accepts a unique prefix of a long option, so prefixes count too (`--no-veri`, `--har`, `--forc`). Each segment is matched by rules, not by regex on the raw string:
+  - `git push`: force (`-f`, `--force*`, `+ref`), `--no-verify`, `--mirror`/`--all`, a destination of `main` (also `heads/main`, and with `--repo`), and `HEAD`, `@` or a bare push while the current branch is `main`. A push to a feature branch is allowed.
+  - `git commit -n`/`--no-verify` (the value of `-m`, `-F` and similar options is skipped), `-c core.hooksPath=…`, and `git config core.hooksPath` to anything but `.githooks`.
+  - `gh pr merge`, `gh release create`, `gh api …/merge` and GraphQL merge mutations (also after `-R <repo>`), and `curl`/`wget` piped into a shell.
+  - From Pocock's original: `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .` (`restore --staged .` is allowed).
+  - Reading `.env*` or `~/.ssh`, and shell writes (`>`, `>|`, `&>`, `sed -i`/`--in-place`, `tee`, `mv`, `rm`, `dd of=`, `patch`, `git checkout|restore|rm|mv`, …) to agent policy files, `.claude/hooks/`, `.harness/check/deny-rules.sh` and `.githooks/`, or to the folders that hold them. `.env.example` is blocked on purpose: it matches `.env*` in R6 and the `Read(./.env*)` deny rule, so the two layers agree.
+
+  - Shell writes (same detection) to the R6 ask paths (`Makefile`, `.github/workflows/`, `CODEOWNERS`, `.harness/tools.lock`) are not blocked: the hook prints a `permissionDecision: "ask"` JSON object, so they get the same prompt as the `Edit(…)` ask rules.
+
+  An unparsable command or hook input exits 2 (fail-closed).
+
+  **Limit:** the guard reads the command text. It cannot see commands that the shell builds at run time: command substitution (`$(echo git) push`), variables (`g=git; $g push`), git aliases (`git -c alias.p=push p`), process substitution (`bash <(curl …)`) a download piped into an interpreter other than a shell (`curl … | python3`), literal text piped into a shell (`echo "git push" | bash`), or a file write by a general interpreter (`python3 -c`, `node -e`). It is a backstop for the deny rules, not a sandbox. The git hooks, CI and the ruleset are the layers that hold when it misses.
+- **`fmt.sh`** runs `make -s fmt FILE=<path>` and always exits 0. Its matcher is `Edit|Write|MultiEdit`: `MultiEdit` is a third file-editing tool, so R7's `Edit|Write` would miss its edits. A formatter failure is not worth blocking an edit; `check` catches it.
+- **`stop-check.sh`** follows R7. Claude Code has no `onFailure` setting: exit 2 is how a Stop hook blocks, and its stderr goes back to the agent. It reads `stop_hook_active` from the input and exits 0 when it is true, which prevents an infinite Stop loop.
 
 Codex, Gemini and Copilot equivalents are written in task 5 after checking their current docs. Where an agent supports a "before shell command" hook, it reuses `guard-bash.sh` with a thin adapter for its input format.
 
