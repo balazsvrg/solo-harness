@@ -115,7 +115,7 @@ Pocock's tracker-setup skill is not vendored. Skills that refer to it are patche
 **R6. Shared permission policy**, expressed in each agent's native format:
 
 - **Deny:** `git push` to `main`; `git push --force*`; `gh pr merge`; `gh release create`; `git commit --no-verify`; reading `.env*` and `~/.ssh/**`; editing any agent policy file (`.claude/settings*.json`, `.codex/**`, `.gemini/**`, Copilot equivalents); editing `.githooks/**`.
-- **Ask:** editing `.github/workflows/**`, `Makefile`, `CODEOWNERS`, `.harness/tools.lock`; any package install (`npm|pnpm|yarn|pip|uv|cargo|go` add/install/get).
+- **Ask:** editing `.github/workflows/**`, `Makefile`, `CODEOWNERS`, `.harness/tools.lock`, the agent hooks (`.claude/hooks/**` and equivalents) and `.harness/check/deny-rules.sh`; any package install (`npm|pnpm|yarn|pip|uv|cargo|go` add/install/get).
 - **Allow:** `make *`; read-only `git`; `gh pr create|view|list|checks`; `gh issue *`.
 
 - **AC-1-12** GIVEN `.claude/settings.json` WHEN `check-harness` runs THEN it fails if any deny rule above is missing.
