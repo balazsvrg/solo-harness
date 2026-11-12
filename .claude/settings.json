@@ -20,7 +20,8 @@
       "Read(~/.ssh/**)",
       "Edit(./.claude/settings*.json)",
       "Edit(./.codex/**)",
-      "Edit(./.gemini/**)",
+      "Edit(./.agents/hooks.json)",
+      "Edit(./.github/hooks/**)",
       "Edit(./.githooks/**)"
     ],
     "ask": [
@@ -44,7 +45,7 @@
       "Bash(cargo install *)",
       "Bash(go get *)",
       "Bash(go install *)",
-      "Edit(./.claude/hooks/**)",
+      "Edit(./.harness/hooks/**)",
       "Edit(./.harness/check/deny-rules.sh)",
       "Bash(npm i)",
       "Bash(pnpm i)",
@@ -84,7 +85,7 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh" }
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/hooks/guard-bash.sh" }
         ]
       }
     ],
@@ -92,14 +93,14 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fmt.sh" }
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/hooks/fmt.sh" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-check.sh", "timeout": 300 }
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.harness/hooks/stop-check.sh", "timeout": 300 }
         ]
       }
     ]

@@ -184,7 +184,7 @@ test_finish_skill_steps() {
 
 test_derived_files_recorded() {
   # AC-1-5, AC-1-6 (derived files): guard-bash.sh is recorded; a missing file or notice fails.
-  assert_contains "$(cat "$HARNESS_ROOT/.agents/skills/VENDORED.md")" '- `.claude/hooks/guard-bash.sh`: from mattpocock/skills'
+  assert_contains "$(cat "$HARNESS_ROOT/.agents/skills/VENDORED.md")" '- `.harness/hooks/guard-bash.sh`: from mattpocock/skills'
   local r; r=$(fixture_repo)
   printf '\n## Derived files\n\n- `hooks/x.sh`: from acme/skills, x.sh at %s, MIT. Changed.\n' "$SHA" >> "$r/.agents/skills/VENDORED.md"
   assert_status 1 vcheck "$r"

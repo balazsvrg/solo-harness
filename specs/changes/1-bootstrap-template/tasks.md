@@ -75,7 +75,7 @@ flowchart LR
 **Blocked by:** T1, T2.
 
 - [x] `.claude/settings.json`: R6 deny/ask/allow (incl. ask on `.harness/tools.lock`), hooks registration, sandbox off
-- [x] `.claude/hooks/{guard-bash,fmt,stop-check}.sh` (guard derived from Pocock's `git-guardrails-claude-code`, recorded in `VENDORED.md`)
+- [x] `.claude/hooks/{guard-bash,fmt,stop-check}.sh` (moved to `.harness/hooks/` in T5) (guard derived from Pocock's `git-guardrails-claude-code`, recorded in `VENDORED.md`)
 - [x] `.claude/agents/reviewer.md` (read-only tools)
 - [x] `.harness/check/deny-rules.sh`
 - [x] AC-1-12 deny-rule presence check
@@ -84,18 +84,21 @@ flowchart LR
 - [x] AC-1-35 guard blocks the eight listed commands, allows the two safe ones
 - [x] AC-1-36 `fmt.sh` silent no-op
 
-## T5: Codex, Copilot and Gemini configuration
+## T5: Codex, Copilot and Antigravity configuration
 
 **Delivers:** the same policy and skills for the other three agents, as far as each supports it.
 
 **Blocked by:** T4.
 
-- [ ] Check each agent's current docs for instruction file, skills path, permission/sandbox config and hooks; record findings in `design.md` §6
-- [ ] Codex: `.codex/` policy and hook adapter if supported
-- [ ] Copilot: `.github/copilot-instructions.md` pointer, reviewer custom agent, `copilot-setup-steps.yml`, hooks if supported
-- [ ] Gemini: `.gemini/settings.json` (`contextFileName`, policy, hooks if supported), skills symlink if needed
-- [ ] Extend `deny-rules.sh` to each agent's policy file (AC-1-12 tests per agent)
-- [ ] Extend AC-1-1 and AC-1-4 tests to the new files
+- [x] Check each agent's current docs for instruction file, skills path, permission/sandbox config and hooks; record findings in `design.md` §6.1
+- [x] Owner moves `.claude/hooks/` to `.harness/hooks/` and updates `.claude/settings.json` (R7)
+- [x] Remove `GEMINI.md` and `.gemini` from `HARNESS_DIRS`, the guard and the checks
+- [x] `.harness/hooks/adapter.sh`: one adapter for Codex, Copilot and Antigravity; the guard also checks file edits against the R6 paths
+- [x] Codex: `.codex/hooks.json` (guard, fmt, stop) and `.codex/rules/default.rules`
+- [x] Copilot: `.github/copilot-instructions.md` pointer, `.github/agents/reviewer.agent.md`, `copilot-setup-steps.yml`, `.github/hooks/guard.json` (guard only)
+- [x] Antigravity: `.agents/hooks.json` (guard, fmt, stop)
+- [x] AC-1-12 per agent: Codex rules contain the deny commands; each hook file runs the guard
+- [x] Extend AC-1-1 and AC-1-4 tests to the new files
 
 ## T6: Git hooks
 
@@ -106,6 +109,7 @@ flowchart LR
 - [ ] `.githooks/pre-commit`, `.githooks/commit-msg`
 - [ ] AC-1-18 pre-commit runs `check` and gitleaks; warns when gitleaks is missing
 - [ ] AC-1-19 commit-msg rejects non-Conventional messages
+- [ ] `guard-bash.sh` lets read-only `git config --get core.hooksPath` (and `--get-all`, `--list`) through; today line 231 blocks every `core.hooksPath` read whose last argument is not `.githooks`
 
 ## T7: CI workflows
 

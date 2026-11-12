@@ -33,4 +33,4 @@ Skills written for this repo. They have no upstream.
 
 Files outside `.agents/skills/` that are based on an upstream file. Each line names the local file, the upstream source, path, commit and license, and the change.
 
-- `.claude/hooks/guard-bash.sh`: from mattpocock/skills, `skills/misc/git-guardrails-claude-code/scripts/block-dangerous-git.sh` at 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d, MIT. Rewritten in python3 (no `jq`); splits compound commands and unwraps `bash -c`, `env` and `sudo`; allows `git push` to a feature branch; adds the R6 and AC-1-35 cases (push to `main`, skipped hooks, merge, release, `curl | sh`, secrets, policy files). Fails closed.
+- `.harness/hooks/guard-bash.sh`: from mattpocock/skills, `skills/misc/git-guardrails-claude-code/scripts/block-dangerous-git.sh` at 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d, MIT. Rewritten in python3 (no `jq`); splits compound commands and unwraps `bash -c`, `env` and `sudo`; allows `git push` to a feature branch; adds the R6 and AC-1-35 cases (push to `main`, skipped hooks, merge, release, `curl | sh`, secrets, policy files). Fails closed.

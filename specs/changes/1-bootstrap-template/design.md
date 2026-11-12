@@ -26,7 +26,6 @@ flowchart LR
     A[AGENTS.md] --> S[.agents/skills]
     S --> C1[.claude/skills]
     S --> C2[.github/skills]
-    S --> C3[Gemini skills path]
   end
   subgraph Sensors_local[Local sensors]
     H1[guard-bash.sh] --> M
@@ -64,12 +63,12 @@ scripts/                      # only commands the owner runs directly
     deny-rules.sh  markdown.sh (Mermaid fences, image embeds)
   ci/                         # CI gate logic; pure functions of (PR body file, changed files, labels)
     docs-gate.sh  pr-size.sh  test-oracle.sh
+  hooks/                      # agent hooks: guard-bash.sh, fmt.sh, stop-check.sh, adapter.sh
   tests/
     run.sh                    # plain-bash runner: sources each test_*.sh, runs every test_* function
     lib/assert.sh
     fixtures/                 # PR bodies, fake diffs, sample change folders
     test_*.sh                 # one file per capability
-.claude/hooks/{guard-bash.sh,fmt.sh,stop-check.sh}
 .template-only                # manifest of paths bootstrap deletes in a new project
 ```
 
@@ -90,7 +89,7 @@ scripts/                      # only commands the owner runs directly
 
 `.harness/config` is the single place for the path definitions below. Every script sources it, so no two gates can disagree.
 
-- **`HARNESS_PATHS`**: `.agents .claude .codex .gemini .github .githooks .harness .scratch docs specs scripts` plus root files (`*.md`, `Makefile`, `.docs-map`, `.template-*`, `version.txt`, release-please files, `LICENSE`, dotfiles). Any tracked file outside this set is **app source**. The placeholder `check-app` fails once app source exists (AC-1-16). A project that only adds `tests/test_api.py` therefore trips it too.
+- **`HARNESS_PATHS`**: `.agents .claude .codex .github .githooks .harness .scratch docs specs scripts` plus root files (`*.md`, `Makefile`, `.docs-map`, `.template-*`, `version.txt`, release-please files, `LICENSE`, dotfiles). Any tracked file outside this set is **app source**. The placeholder `check-app` fails once app source exists (AC-1-16). A project that only adds `tests/test_api.py` therefore trips it too.
 - **`TEST_GLOBS`**: `**/test_*.* **/*_test.* **/*.test.* **/*.spec.* tests/** test/** __tests__/** .harness/tests/**`. Overlays narrow it to their stack. Three consumers read it:
   - `docs-gate` searches only these files for `AC-<id>-<n>` (AC-1-23).
   - `test-oracle` treats a change to any matching file as a test change.
@@ -111,7 +110,7 @@ All three Claude hooks read the hook JSON from stdin with `python3`, and print n
   - `git commit -n`/`--no-verify` (the value of `-m`, `-F` and similar options is skipped), `-c core.hooksPath=…`, and `git config core.hooksPath` to anything but `.githooks`.
   - `gh pr merge`, `gh release create`, `gh api …/merge` and GraphQL merge mutations (also after `-R <repo>`), and `curl`/`wget` piped into a shell.
   - From Pocock's original: `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .` (`restore --staged .` is allowed).
-  - Reading `.env*` or `~/.ssh`, and shell writes (`>`, `>|`, `&>`, `sed -i`/`--in-place`, `tee`, `mv`, `rm`, `dd of=`, `patch`, `git checkout|restore|rm|mv`, …) to agent policy files, `.claude/hooks/`, `.harness/check/deny-rules.sh` and `.githooks/`, or to the folders that hold them. `.env.example` is blocked on purpose: it matches `.env*` in R6 and the `Read(./.env*)` deny rule, so the two layers agree.
+  - Reading `.env*` or `~/.ssh`, and shell writes (`>`, `>|`, `&>`, `sed -i`/`--in-place`, `tee`, `mv`, `rm`, `dd of=`, `patch`, `git checkout|restore|rm|mv`, …) to agent policy files, `.harness/hooks/`, `.harness/check/deny-rules.sh` and `.githooks/`, or to the folders that hold them. `.env.example` is blocked on purpose: it matches `.env*` in R6 and the `Read(./.env*)` deny rule, so the two layers agree.
 
   - Shell writes (same detection) to the R6 ask paths (`Makefile`, `.github/workflows/`, `CODEOWNERS`, `.harness/tools.lock`) are not blocked: the hook prints a `permissionDecision: "ask"` JSON object, so they get the same prompt as the `Edit(…)` ask rules.
 
@@ -121,7 +120,56 @@ All three Claude hooks read the hook JSON from stdin with `python3`, and print n
 - **`fmt.sh`** runs `make -s fmt FILE=<path>` and always exits 0. Its matcher is `Edit|Write|MultiEdit`: `MultiEdit` is a third file-editing tool, so R7's `Edit|Write` would miss its edits. A formatter failure is not worth blocking an edit; `check` catches it.
 - **`stop-check.sh`** follows R7. Claude Code has no `onFailure` setting: exit 2 is how a Stop hook blocks, and its stderr goes back to the agent. It reads `stop_hook_active` from the input and exits 0 when it is true, which prevents an infinite Stop loop.
 
-Codex, Gemini and Copilot equivalents are written in task 5 after checking their current docs. Where an agent supports a "before shell command" hook, it reuses `guard-bash.sh` with a thin adapter for its input format.
+### 6.1 Other agents: findings (checked 2026-11-12)
+
+Task 5 checked each agent against its current official docs. Google replaced Gemini CLI with **Antigravity CLI** (`agy`) on 2026-06-18 for unpaid and Google One accounts ([blog](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)). Gemini CLI's project-level policy tier is "currently non-functional" ([policy engine](https://geminicli.com/docs/reference/policy-engine/)). The owner chose Antigravity CLI as the fourth agent.
+
+| Topic | Codex CLI | Copilot (CLI and cloud agent) | Antigravity CLI |
+|---|---|---|---|
+| Instructions | `AGENTS.md` | `AGENTS.md` (also `.github/copilot-instructions.md`) | `AGENTS.md` and `GEMINI.md` ([migration](https://antigravity.google/docs/cli/gcli-migration)) |
+| Repo skills | `.agents/skills/` ([skills](https://learn.chatgpt.com/docs/build-skills)) | `.agents/skills/`, `.github/skills/` or `.claude/skills/` ([skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)) | `.agents/skills/` |
+| Hooks file | `.codex/hooks.json` or `[hooks]` in `.codex/config.toml` ([hooks](https://learn.chatgpt.com/docs/hooks)) | `.github/hooks/*.json`, `version: 1`; cloud agent reads it from the default branch ([reference](https://docs.github.com/en/copilot/reference/hooks-reference)) | `.agents/hooks.json` ([hooks](https://antigravity.google/docs/hooks/)) |
+| Before-tool event | `PreToolUse`; `tool_name` `Bash` or `apply_patch`, text in `tool_input.command` | `preToolUse`; `toolName` `bash` or `edit`, `toolArgs` is a JSON string (`{"command": …}`) | `PreToolUse`; `toolCall.name` `run_command` (`toolCall.args.CommandLine`) or `write_to_file`, `replace_file_content`, `multi_replace_file_content` |
+| How to block | exit 2, or `permissionDecision: "deny"` | exit 2, or `permissionDecision: "deny"`; other non-zero exits also deny | JSON `decision: "deny"` (exit codes not documented) |
+| Ask | Not supported: the hook run fails and the call continues | `"ask"`; the cloud agent treats it as deny | `"ask"` and `"force_ask"` |
+| Stop event | `Stop`: exit 2 or `decision: "block"` starts a continuation | `agentStop`: `block` forces another turn (CLI stops after 8) | `Stop`: `decision: "continue"` with a `reason` |
+| After-tool event | `PostToolUse` | `postToolUse` | `PostToolUse` |
+| Permission policy in the repo | `.codex/rules/*.rules` (`prefix_rule`, `forbidden`/`prompt`/`allow`) for commands ([rules](https://learn.chatgpt.com/docs/agent-configuration/rules)). Path rules exist in permission profiles, but the docs show them only in user and system config ([permissions](https://learn.chatgpt.com/docs/permissions)). | None. Tools are limited per custom agent (`tools:`). | None. Allow/ask/deny rules are only in the global `~/.gemini/antigravity-cli/settings.json` ([permissions](https://antigravity.google/docs/permissions/)). |
+| Trust | Project `.codex/` hooks and rules load only in a trusted project, and each hook must be trusted (by hash) with `/hooks` | None documented | `trustedWorkspaces`; the docs do not say whether `.agents/hooks.json` needs trust |
+| Built-in protection | The `:workspace` sandbox keeps `.git`, `.agents` and `.codex` read-only | None | None documented |
+| Read-only reviewer agent | None | `.github/agents/reviewer.agent.md` with `tools: ["read", "search"]` | None |
+
+**Gaps.** Copilot and Antigravity cannot keep R6 rules in the repo, so the hooks are the only in-repo layer there. Codex hooks cannot ask, so the R6 ask paths become deny for Codex or rely on its approval policy. Each project hook needs a trust step by the owner, so `bootstrap` prints it as a human step. Where a hook misses, the git hooks, CI and the ruleset hold.
+
+**Not done on purpose.** `.codex/rules/default.rules` has no R6 allow rules: a Codex `allow` rule runs the command outside the sandbox, and the `:workspace` sandbox already runs `make`, read-only `git` and `gh` without a prompt. Copilot and Antigravity get the R6 package-install ask from the adapter (`PACKAGE_INSTALL` in `policy.py`); Claude and Codex get it from their own rules. If `python3` is missing, the adapter cannot run: Copilot denies the call (non-zero exit), Codex and Antigravity let it through. `python3` is a harness requirement, so `make check` fails first.
+
+### 6.2 Adapter
+
+`.harness/hooks/adapter.sh AGENT EVENT` connects Codex, Copilot and Antigravity to the three hook scripts. `AGENT` is `codex`, `copilot` or `antigravity`. `EVENT` is `pre`, `post` or `stop`. It reads the agent's hook JSON from stdin.
+
+```mermaid
+flowchart LR
+  I[agent hook JSON] --> N[normalize]
+  N -->|shell command| G[guard-bash.sh]
+  N -->|file edit or read| P[R6 path rules]
+  N -->|other tool| U[secret and deny paths]
+  G --> D{allow, ask or deny}
+  P --> D
+  U --> D
+  D --> O[agent-native output]
+```
+
+- **Shared rules.** `.harness/hooks/policy.py` holds the R6 path patterns. `guard-bash.sh` and the adapter both import it. Each pattern also tests the cleaned path (`os.path.normpath`), so `a//b`, `a/./b` and `x/../a` do not get past a rule.
+- **`pre`, shell command** (Codex `Bash`, Copilot `bash`, Antigravity `run_command`): the adapter sends `{"tool_input": {"command": …}}` to `guard-bash.sh`. Exit 2 is deny with the stderr reason. An `"ask"` JSON result is ask.
+- **`pre`, file edit** (Codex `apply_patch`: paths from the `*** Add/Update/Delete File:` and `*** Move to:` lines; Copilot `edit`/`create`; Antigravity `write_to_file`, `replace_file_content`, `multi_replace_file_content` with `TargetFile`): a path that matches an R6 deny path is deny. A path that matches an R6 ask path is ask. The path rules come from `policy.py`, so the two do not drift.
+- **`pre`, file read** (Copilot `view`, Antigravity `view_file` with `AbsolutePath`): a path that matches `.env*` or `.ssh/` is deny.
+- **Unknown argument keys.** Copilot does not document the `toolArgs` keys of `edit`, `create` and `view`. The adapter checks every string value under a key that ends in `path` or `file` (so `file_text` is not a path). An edit or read tool with no such value is deny (fail-closed).
+- **`pre`, other tool** (any tool the adapter does not know, for example Copilot `glob` or `grep`): the adapter cannot tell which arguments are paths, so it checks every string in the arguments. A string that matches a secret path or an R6 deny path is deny. All other calls are allow.
+- **Package install.** The adapter asks for Copilot and Antigravity only. For Codex the hook lets the install through, so the `prompt` rule in `.codex/rules/default.rules` can ask.
+- **Output.** Codex: deny is exit 2 with the reason on stderr; ask becomes deny with "ask the owner" in the reason, because Codex hooks cannot ask. Copilot: `{"permissionDecision": …, "permissionDecisionReason": …}`; allow prints nothing. Antigravity: `{"decision": "allow"|"ask"|"deny", "reason": …}`, because `decision` is required.
+- **`post`**: runs `fmt.sh` once per edited path. Always exits 0. Antigravity gets `{}`. Copilot has no `post` hook (R7).
+- **`stop`**: runs `stop-check.sh`. Codex passes its `stop_hook_active`. Antigravity has no loop flag, so the adapter sends `false`. On failure, Codex gets exit 2 with the reason on stderr and Antigravity gets `{"decision": "continue", "reason": …}`. On success, Codex gets `{}` and Antigravity gets `{"decision": "allow"}`.
+- **Not verified in a live session:** Antigravity exit codes and the hook working directory, and the Copilot `toolArgs` keys. The owner smoke-tests each agent later and opens a new change for each fix.
 
 ## 7. Documentation gate
 
@@ -188,7 +236,7 @@ GitHub requires a base commit before a PR can exist, and a ruleset can require c
 
 | Risk | Mitigation |
 |---|---|
-| Codex/Gemini/Copilot config formats differ from what research notes say | Task 5 verifies against current docs before writing; unsupported features are documented, not faked |
+| Codex/Antigravity/Copilot config formats differ from what research notes say | Task 5 verifies against current docs before writing; unsupported features are documented, not faked |
 | Pinned tool download fails (network, moved URL) | `install-tools` fails with a clear message; `check-harness` cannot pass without tools, by design |
 | `guard-bash.sh` false positives annoy daily use | Allowed-command tests (AC-1-35) and `retro` to tune patterns |
 | Upstream skills change shape | Pinned SHAs; `vendor-diff` makes updates deliberate |

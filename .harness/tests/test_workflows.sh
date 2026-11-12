@@ -117,3 +117,12 @@ test_tools_outdated_is_report_only() {
   grep -qE 'git push|gh pr |create-pull-request|git commit' "$f" && fail 'tools-outdated must not push or open a PR'
   return 0
 }
+
+test_copilot_setup_steps() {
+  # R7: Copilot installs the pinned tools and turns on the git hooks before it works.
+  local f=$WF/copilot-setup-steps.yml
+  assert_file "$f"
+  assert_eq "$(job_names "$f" | xargs)" copilot-setup-steps 'the job id Copilot looks for'
+  assert_contains "$(job_block "$f" copilot-setup-steps)" 'make tools'
+  assert_contains "$(job_block "$f" copilot-setup-steps)" 'git config core.hooksPath .githooks'
+}

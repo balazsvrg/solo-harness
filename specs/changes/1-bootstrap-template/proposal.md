@@ -15,7 +15,7 @@ A public GitHub template repository named **`solo-harness`**. It is language-agn
 
 1. A right-sized lifecycle (S/M/L) with file-based specs in the OpenSpec layout and Pocock-style tickets.
 2. Vendored, pinned agent skills (mostly Matt Pocock's, plus ASD-STE100) and one original `finish` skill.
-3. Agent configuration for Claude Code, Codex CLI, GitHub Copilot and Gemini CLI, all reading one `AGENTS.md` and one skills directory.
+3. Agent configuration for Claude Code, Codex CLI, GitHub Copilot and Antigravity CLI, all reading one `AGENTS.md` and one skills directory.
 4. A layered enforcement stack: agent deny rules and hooks, git hooks, a single `make check`, required CI checks, a docs gate, and a ruleset with an empty bypass list.
 5. An idempotent `scripts/bootstrap` that turns a fresh copy into a configured project.
 6. A README that explains the pipeline in detail with Mermaid diagrams.
@@ -53,18 +53,18 @@ All requirements below are **ADDED** (there are no living specs yet). Each accep
 
 ```
 AGENTS.md                      # canonical, < 60 lines
-CLAUDE.md -> AGENTS.md         GEMINI.md -> AGENTS.md
+CLAUDE.md -> AGENTS.md
 .agents/skills/<name>/SKILL.md # single canonical skills directory
 .agents/skills/VENDORED.md
 .claude/{settings.json,agents/reviewer.md}   .claude/skills -> ../.agents/skills
-.codex/…                       # Codex policy/hooks (exact files verified at build time)
-.gemini/…                      # Gemini settings/hooks (verified at build time)
-.github/{copilot-instructions.md,agents/,skills -> ../.agents/skills}
+.agents/hooks.json             # Antigravity hooks
+.codex/{hooks.json,rules/}     # Codex hooks and command rules
+.github/{copilot-instructions.md,agents/,hooks/,skills -> ../.agents/skills}
 .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md,dependabot.yml,ruleset.json}
 .githooks/{pre-commit,commit-msg}
 docs/{product.md,architecture.md,adr/}   GLOSSARY.md
 specs/<capability>.md   specs/changes/<id>-<slug>/   specs/changes/archive/
-.harness/                      # harness internals: config, checks, CI gate scripts, own tests
+.harness/                      # harness internals: config, checks, CI gate scripts, agent hooks, own tests
 scripts/{bootstrap,install-tools,vendor-diff}   Makefile   .docs-map   version.txt   CHANGELOG.md
 release-please-config.json   .release-please-manifest.json
 LICENSE (MIT)   THIRD_PARTY_LICENSES.md   README.md
@@ -113,17 +113,19 @@ Pocock's tracker-setup skill is not vendored. Skills that refer to it are patche
 
 ### Capability: agent configuration
 
-**R5. Four agents.** Claude Code, Codex CLI, Copilot and Gemini CLI are supported. All read `AGENTS.md` and the skills in `.agents/skills/`. The exact file names for Codex, Copilot and Gemini hooks and skills paths are verified against their current docs during implementation; where an agent lacks hooks, git hooks and CI cover the gap.
+**R5. Four agents.** Claude Code, Codex CLI, Copilot and Antigravity CLI are supported. Antigravity CLI replaced Gemini CLI on 2026-06-18. All read `AGENTS.md` and the skills in `.agents/skills/`. `design.md` §6.1 records the file names and features verified against each agent's current docs; where an agent lacks a feature, git hooks and CI cover the gap.
 
 **R6. Shared permission policy**, expressed in each agent's native format:
 
-- **Deny:** `git push` to `main`; `git push --force*`; `gh pr merge`; `gh release create`; `git commit --no-verify`; reading `.env*` and `~/.ssh/**`; editing any agent policy file (`.claude/settings*.json`, `.codex/**`, `.gemini/**`, Copilot equivalents); editing `.githooks/**`.
-- **Ask:** editing `.github/workflows/**`, `Makefile`, `CODEOWNERS`, `.harness/tools.lock`, the agent hooks (`.claude/hooks/**` and equivalents) and `.harness/check/deny-rules.sh`; any package install (`npm|pnpm|yarn|pip|uv|cargo|go` add/install/get).
+- **Deny:** `git push` to `main`; `git push --force*`; `gh pr merge`; `gh release create`; `git commit --no-verify`; reading `.env*` and `~/.ssh/**`; editing any agent policy file (`.claude/settings*.json`, `.codex/**`, `.agents/hooks.json`, `.github/hooks/**`); editing `.githooks/**`.
+- **Ask:** editing `.github/workflows/**`, `Makefile`, `CODEOWNERS`, `.harness/tools.lock`, the agent hook scripts (`.harness/hooks/**`) and `.harness/check/deny-rules.sh`; any package install (`npm|pnpm|yarn|pip|uv|cargo|go` add/install/get).
 - **Allow:** `make *`; read-only `git`; `gh pr create|view|list|checks`; `gh issue *`.
 
-- **AC-1-12** GIVEN `.claude/settings.json` WHEN `check-harness` runs THEN it fails if any deny rule above is missing.
+Copilot and Antigravity keep no permission rules in the repo, so their before-tool hook is the only in-repo layer. Where an agent's hook cannot ask (Codex, the Copilot cloud agent), the hook denies the ask paths and tells the agent to ask the owner.
 
-**R7. Claude hooks.** Three hooks live in `.claude/hooks/`. All are silent on success.
+- **AC-1-12** GIVEN `.claude/settings.json` or `.codex/rules/default.rules` WHEN `check-harness` runs THEN it fails if any deny rule above that the file can express is missing. GIVEN `.codex/hooks.json`, `.agents/hooks.json` or `.github/hooks/guard.json` THEN it fails if the before-tool event does not run the guard.
+
+**R7. Agent hooks.** Three hook scripts live in `.harness/hooks/`, so they survive when bootstrap removes an agent. All are silent on success. Claude runs them directly:
 
 | Event | Script | Behaviour |
 |---|---|---|
@@ -131,7 +133,7 @@ Pocock's tracker-setup skill is not vendored. Skills that refer to it are patche
 | `PostToolUse` (`Edit\|Write`) | `fmt.sh` | Runs `make fmt FILE=<path>`. The core `fmt` target is a no-op; overlays fill it. Never blocks. |
 | `Stop` | `stop-check.sh` | Runs `make check` only when `git status --porcelain` is non-empty. `onFailure: block`, 5-minute timeout, prints only the last ~40 lines of failing output. |
 
-No `SessionStart` hook: it would cost tokens in every session. `handoff` documents carry the context instead. Codex and Gemini get equivalents where their hook systems allow. Copilot relies on `copilot-setup-steps.yml`, git hooks and CI.
+No `SessionStart` hook: it would cost tokens in every session. `handoff` documents carry the context instead. Codex and Antigravity run the same three scripts through one adapter per agent in `.harness/hooks/`; the adapter turns the agent's input into the guard's input and the result into the agent's output. For them the guard also checks file edits against the R6 paths. Copilot gets only the before-tool guard: a stop check in the cloud agent costs Actions minutes, and CI runs `make check`. Each project hook needs a trust step by the owner; bootstrap prints it.
 
 - **AC-1-13** GIVEN a clean working tree WHEN the Stop hook runs THEN it exits 0 without running `make check`.
 - **AC-1-14** GIVEN a dirty tree and a failing check WHEN the Stop hook runs THEN it exits 2 and prints at most 40 lines.
@@ -200,7 +202,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 **R18. `scripts/bootstrap`** is idempotent bash. Each step checks state before it acts. Steps:
 
 1. Ask the project name; replace placeholders.
-2. Ask which agents are used (multi-select of Claude, Codex, Copilot, Gemini); delete the configs of the rest.
+2. Ask which agents are used (multi-select of Claude, Codex, Copilot, Antigravity); delete the configs of the rest.
 3. Ask whether agents should stop adding AI attribution (`Co-Authored-By: Claude …` trailers, "Generated with" lines) to commits and PRs. Default: keep. On yes, turn attribution off in each selected agent's project config where the agent has such a setting (Claude Code: `.claude/settings.json`; the exact keys for all four agents are verified against their current docs during implementation, as in R5). Tell the owner which agents have no such setting. The template repo keeps attribution.
 4. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as squash commit message.
 5. Create labels: `size/S`, `size/M`, `size/L`, `size-exception`, `agent`, `dependencies`.
@@ -214,7 +216,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--local` (skip all GitHub steps), `--add-agent <name>` (fetch that agent's files from the template repo).
 
 - **AC-1-27** GIVEN `--dry-run --local` WHEN run twice on a temp copy THEN the second run reports no changes.
-- **AC-1-28** GIVEN agent selection `claude` only THEN Codex, Copilot and Gemini files are removed and all remaining symlinks resolve. Repeat for each single agent and for all four.
+- **AC-1-28** GIVEN agent selection `claude` only THEN Codex, Copilot and Antigravity files are removed and all remaining symlinks resolve. Repeat for each single agent and for all four.
 - **AC-1-29** GIVEN `--dry-run` THEN every GitHub step prints its `gh api` call and makes no network write.
 - **AC-1-34** GIVEN a placeholder `check-app` WHEN bootstrap finishes THEN its output contains the "configure `check-app`" notice. GIVEN a filled `check-app` THEN the notice is absent.
 - **AC-1-40** GIVEN agent selection `claude` and the answer "remove attribution" THEN the project's `.claude/settings.json` turns off commit and PR attribution. GIVEN the default answer, or template mode, THEN no attribution setting is written.
@@ -282,7 +284,7 @@ Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--lo
 1. Repo skeleton, `AGENTS.md`, `Makefile` with `check-harness`.
 2. Vendor skills, `VENDORED.md`, `THIRD_PARTY_LICENSES.md`, patches, `finish`.
 3. Claude config: settings, Stop hook, reviewer.
-4. Codex, Copilot and Gemini configs.
+4. Codex, Copilot and Antigravity configs.
 5. Git hooks.
 6. CI workflows, including `docs-gate`.
 7. Issue and PR templates, labels list.

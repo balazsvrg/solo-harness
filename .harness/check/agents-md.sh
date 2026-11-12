@@ -17,7 +17,7 @@ for needle in 'make check' 'S/M/L' '.agents/skills' 'strongest model' 'once at t
 done
 
 # No ALL-CAPS emphasis. Inline code and *.md names are ignored; acronyms are allowed.
-allowed=' AGENTS CLAUDE GEMINI README CHANGELOG GLOSSARY LICENSE ADR MIT API CLI CI PR PRS STE ASD TDD JSON YAML TOML URL SHA AC OS UI MCP HTTP ASCII '
+allowed=' AGENTS CLAUDE README CHANGELOG GLOSSARY LICENSE ADR MIT API CLI CI PR PRS STE ASD TDD JSON YAML TOML URL SHA AC OS UI MCP HTTP ASCII '
 # shellcheck disable=SC2016 # backticks are literal
 caps=$(sed -E 's/`[^`]*`//g; s/[A-Z_]+\.md//g' "$f" | grep -oE '\b[A-Z]{2,}\b' | sort -u || true)
 for w in $caps; do
@@ -26,7 +26,7 @@ done
 
 # No agent config pins a model.
 shopt -s nullglob
-for c in "$root"/.claude/settings*.json "$root"/.gemini/settings.json; do
+for c in "$root"/.claude/settings*.json; do
   [[ -f $c ]] || continue
   grep -qE '"model"[[:space:]]*:' "$c" && bad "${c#"$root"/}: pins a model"
 done

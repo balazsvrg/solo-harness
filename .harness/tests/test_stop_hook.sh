@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Tests for .claude/hooks/stop-check.sh (R7).
+# Tests for .harness/hooks/stop-check.sh (R7).
 
 # stop_repo RECIPE: a committed repo whose `make check` runs RECIPE and leaves a marker.
 stop_repo() {
@@ -10,7 +10,7 @@ stop_repo() {
   git -C "$r" -c user.name=t -c user.email=t@t commit -qm init
   printf '%s\n' "$r"
 }
-stop() { echo "${2:-"{}"}" | CLAUDE_PROJECT_DIR=$1 "$HARNESS_ROOT/.claude/hooks/stop-check.sh"; }
+stop() { echo "${2:-"{}"}" | CLAUDE_PROJECT_DIR=$1 "$HARNESS_ROOT/.harness/hooks/stop-check.sh"; }
 
 test_stop_hook_clean_tree_noop() {
   # AC-1-13

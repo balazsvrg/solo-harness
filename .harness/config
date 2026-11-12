@@ -3,7 +3,7 @@
 # Overlays and projects may edit the values; keep the variable names.
 
 # Paths that belong to the harness. Any other file is app source.
-HARNESS_DIRS=(.agents .claude .codex .gemini .github .githooks .harness .scratch docs specs scripts)
+HARNESS_DIRS=(.agents .claude .codex .github .githooks .harness .scratch docs specs scripts)
 # Root-level files that belong to the harness (globs, matched at the repo root only).
 HARNESS_ROOT_FILES=('*.md' 'Makefile' 'LICENSE' 'version.txt' 'release-please-config.json' '.*')
 

@@ -6,7 +6,10 @@ check() { "$HARNESS_ROOT/.harness/check/$1.sh" "${@:2}"; }
 test_symlinks_resolve() {
   # AC-1-1
   [[ $(readlink "$HARNESS_ROOT/CLAUDE.md") == AGENTS.md ]] || fail 'CLAUDE.md -> AGENTS.md'
-  [[ $(readlink "$HARNESS_ROOT/GEMINI.md") == AGENTS.md ]] || fail 'GEMINI.md -> AGENTS.md'
+  [[ $(readlink "$HARNESS_ROOT/.github/skills") == ../.agents/skills ]] || fail '.github/skills -> ../.agents/skills'
+  # R5: Antigravity reads AGENTS.md, so no GEMINI.md and no .gemini/.
+  assert_no_file "$HARNESS_ROOT/GEMINI.md"
+  [[ ! -e $HARNESS_ROOT/.gemini ]] || fail '.gemini/ must not exist'
   assert_status 0 check symlinks "$HARNESS_ROOT"
   local r; r=$(new_repo)
   ln -s missing.md "$r/CLAUDE.md"
@@ -46,7 +49,7 @@ test_model_advice_and_no_pin() {
   grep -v 'strongest model' "$HARNESS_ROOT/AGENTS.md" > "$r/AGENTS.md"
   assert_status 1 check agents-md "$r"
   cp "$HARNESS_ROOT/AGENTS.md" "$r/"
-  mkdir -p "$r/.claude/agents" "$r/.codex" "$r/.gemini" "$r/.github/agents"
+  mkdir -p "$r/.claude/agents" "$r/.codex" "$r/.github/agents"
   echo '{"model": "opus"}' > "$r/.claude/settings.json"
   assert_status 1 check agents-md "$r"
   assert_contains "$OUT" .claude/settings.json
@@ -60,9 +63,6 @@ test_model_advice_and_no_pin() {
   printf -- '---\nmodel: gpt\n---\n' > "$r/.github/agents/r.agent.md"
   assert_status 1 check agents-md "$r"
   rm "$r/.github/agents/r.agent.md"
-  echo '{"model": {"name": "g"}}' > "$r/.gemini/settings.json"
-  assert_status 1 check agents-md "$r"
-  echo '{}' > "$r/.gemini/settings.json"
   assert_status 0 check agents-md "$r"
 }
 

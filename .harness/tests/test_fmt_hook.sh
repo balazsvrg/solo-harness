@@ -1,7 +1,7 @@
 # shellcheck shell=bash
-# Tests for .claude/hooks/fmt.sh (R7).
+# Tests for .harness/hooks/fmt.sh (R7).
 
-fmt_hook() { echo '{"tool_input":{"file_path":"x.md"}}' | CLAUDE_PROJECT_DIR=$1 "$HARNESS_ROOT/.claude/hooks/fmt.sh"; }
+fmt_hook() { echo '{"tool_input":{"file_path":"x.md"}}' | CLAUDE_PROJECT_DIR=$1 "$HARNESS_ROOT/.harness/hooks/fmt.sh"; }
 
 test_fmt_hook_silent_noop() {
   # AC-1-36

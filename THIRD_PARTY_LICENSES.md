@@ -6,7 +6,7 @@ This repo includes agent skills from the projects below, under the MIT License. 
 
 Source: <https://github.com/mattpocock/skills>
 
-Modified skills: `code-review`, `domain-modeling`, `handoff`, `implement`, `pr`, `to-spec`, `to-tickets`. `VENDORED.md` describes each change. All other skills from this project are unmodified. Derived file: `.claude/hooks/guard-bash.sh` (from `git-guardrails-claude-code`, rewritten; see `VENDORED.md`).
+Modified skills: `code-review`, `domain-modeling`, `handoff`, `implement`, `pr`, `to-spec`, `to-tickets`. `VENDORED.md` describes each change. All other skills from this project are unmodified. Derived file: `.harness/hooks/guard-bash.sh` (from `git-guardrails-claude-code`, rewritten; see `VENDORED.md`).
 
 ```text
 MIT License

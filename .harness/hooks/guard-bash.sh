@@ -21,6 +21,12 @@ def block(reason):
     sys.exit(2)
 
 try:
+    sys.path.insert(0, sys.argv[1])
+    from policy import SHELL_BLOCK as PROTECTED, SHELL_ASK as ASK_PATHS, SECRET
+except BaseException:
+    block("cannot load policy.py")
+
+try:
     cmd = json.load(sys.stdin)["tool_input"]["command"]
     assert isinstance(cmd, str)
 except Exception:
@@ -39,14 +45,9 @@ SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish"}
 # Shell keywords that can start a segment in front of the real command.
 KEYWORDS = {"{", "}", "!", "if", "then", "else", "elif", "do", "while", "until", "fi", "done"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
-PROTECTED = re.compile(
-    r"(^|/|=)(\.claude/?$|\.claude/settings[^/]*\.json$|\.claude/hooks(/|$)|\.harness/?$|\.harness/check/?$"
-    r"|\.harness/check/deny-rules\.sh$|\.githooks(/|$)|\.codex(/|$)|\.gemini(/|$))")
-# R6 ask paths. A shell write to one of them gets an ask prompt, like the Edit(...) ask rules.
-ASK_PATHS = re.compile(r"(^|/|=)(Makefile$|CODEOWNERS$|\.github/?$|\.github/workflows(/|$)|\.harness/tools\.lock$)")
+# PROTECTED (shell writes blocked), ASK_PATHS (shell writes asked) and SECRET come from policy.py.
 ASKS = []
 WRITERS = {"sed", "perl", "tee", "mv", "cp", "rm", "ln", "chmod", "truncate", "install", "dd", "patch"}
-SECRET = re.compile(r"(^|/)\.env[^/]*$|(^|/)\.ssh(/|$)")
 DQ, SQ, BT = chr(34), chr(39), chr(96)  # double quote, single quote, backtick
 
 def longopt(a, full, minlen):
@@ -328,4 +329,4 @@ if ASKS:
         "permissionDecision": "ask",
         "permissionDecisionReason": "guard-bash: this command changes " + ", ".join(sorted(set(ASKS))) + " (R6 ask path)",
     }}))
-'
+' "$(dirname "$0")"
