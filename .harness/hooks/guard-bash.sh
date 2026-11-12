@@ -225,11 +225,34 @@ def check_commit(rest):
         elif a in valued:
             skip = True
 
+CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--list", "-l"}
+CONFIG_VALUED = {"-f", "--file", "--blob", "--type", "--default", "--comment"}
+
+def config_keeps_hooks(rest):
+    # True for a read of core.hooksPath, or a write that sets it to exactly .githooks.
+    words, flags, skip = [], set(), False
+    for a in rest:
+        if skip:
+            skip = False
+        elif a.startswith("-"):
+            flags.add(a.split("=")[0].lower())
+            skip = a in CONFIG_VALUED
+        else:
+            words.append(a)
+    if words[:1] == ["unset"] or any(f.startswith("--unset") for f in flags):
+        return False
+    if words[:1] in (["get"], ["list"]) or CONFIG_READS & flags:
+        return True
+    if words[:1] == ["set"]:
+        words = words[1:]
+    # A key alone is a read. A key and a value is a write. A third word is a value pattern.
+    return len(words) == 1 or words[1:] == [".githooks"]
+
 def check_git(args):
     opts, sub, rest = git_sub(args)
     if any("hookspath" in o.lower() for o in opts):
         block("git -c core.hooksPath skips the git hooks")
-    if sub == "config" and any("hookspath" in a.lower() for a in rest) and rest[-1:] != [".githooks"]:
+    if sub == "config" and any("hookspath" in a.lower() for a in rest) and not config_keeps_hooks(rest):
         block("changing core.hooksPath skips the git hooks")
     if sub == "push":
         check_push(rest)

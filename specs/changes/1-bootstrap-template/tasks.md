@@ -106,10 +106,10 @@ flowchart LR
 
 **Blocked by:** T1.
 
-- [ ] `.githooks/pre-commit`, `.githooks/commit-msg`
-- [ ] AC-1-18 pre-commit runs `check` and gitleaks; warns when gitleaks is missing
-- [ ] AC-1-19 commit-msg rejects non-Conventional messages
-- [ ] `guard-bash.sh` lets read-only `git config --get core.hooksPath` (and `--get-all`, `--list`) through; today line 231 blocks every `core.hooksPath` read whose last argument is not `.githooks`
+- [x] `.githooks/pre-commit`, `.githooks/commit-msg`
+- [x] AC-1-18 pre-commit runs `check` and gitleaks; warns when gitleaks is missing
+- [x] AC-1-19 commit-msg rejects non-Conventional messages
+- [x] `guard-bash.sh` lets read-only `git config --get core.hooksPath` (and `--get-all`, `--list`) through; today line 231 blocks every `core.hooksPath` read whose last argument is not `.githooks`
 
 ## T7: CI workflows
 

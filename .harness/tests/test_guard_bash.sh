@@ -53,6 +53,23 @@ test_guard_catches_disguised_forms() {
   done
 }
 
+test_guard_allows_reading_hooks_path() {
+  # AC-1-35 (read-only core.hooksPath)
+  local c
+  for c in 'git config --get core.hooksPath' 'git config --get-all core.hooksPath' 'git config --get-regexp core.hookspath' \
+    'git config core.hooksPath' 'git config --global --get core.hooksPath' 'git config get core.hooksPath' \
+    'git config -l | grep -i hookspath' 'git config core.hooksPath .githooks'; do
+    assert_status 0 guard "$c"
+  done
+  for c in 'git config --unset core.hooksPath' 'git config --unset-all core.hooksPath' 'git config unset core.hooksPath' \
+    'git config --replace-all core.hooksPath /dev/null' 'git config core.hooksPath /dev/null' \
+    'git config set core.hooksPath /tmp/x' 'git config core.hooksPath get' 'git config --global core.hooksPath .git/hooks' \
+    'git config core.hooksPath /tmp/hookspath' 'git config core.hooksPath /dev/null .githooks' \
+    "git config core.hooksPath /dev/null 'hookspath|.'" 'git config --file .git/config core.hooksPath /dev/null'; do
+    assert_status 2 guard "$c"
+  done
+}
+
 test_guard_fails_closed_on_bad_input() {
   # AC-1-35 (fail-closed)
   assert_status 2 bash -c "echo 'not json' | '$HARNESS_ROOT/.harness/hooks/guard-bash.sh'"
