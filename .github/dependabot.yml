@@ -1,0 +1,16 @@
+# Dependency updates (R17). The core has only GitHub Actions; overlays add ecosystems.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Titles like "chore(deps): bump …", so the pr-title check passes.
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      github-actions:
+        update-types: [minor, patch]

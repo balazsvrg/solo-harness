@@ -232,6 +232,11 @@ GitHub requires a base commit before a PR can exist, and a ruleset can require c
 5. `finish` runs as the last commit of the PR. All required checks must pass before the owner squash-merges.
 6. Mark the repo as a template in GitHub settings.
 
+**The release PR.** The ruleset also applies to the PR that release-please opens (R16). Two things make that PR mergeable:
+
+- `release-please-config.json` sets `pull-request-footer` to `Size: S`, `Change: none` and `ADR: none – …`, so `docs-gate` passes.
+- A PR made with `github.token` does not start workflows, so the required checks never report. The workflow uses `secrets.RELEASE_PLEASE_TOKEN || github.token`. If the owner sets that secret (fine-grained PAT, contents and pull requests write), CI runs on its own. Without it, the owner closes and reopens the release PR before the merge. Bootstrap prints this as a human step.
+
 ## 10. Risks
 
 | Risk | Mitigation |

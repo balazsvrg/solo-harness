@@ -13,8 +13,6 @@ body() { { printf '%s\n' "$@"; printf '\n## Summary\n\nText.\n'; } > body.md; }
 # put PATH [CONTENT]: create a file in the repo under test.
 put() { mkdir -p "$(dirname "$1")"; printf '%s\n' "${2:-x}" > "$1"; }
 
-init_repo() { git init -q .; printf 'changes\nbody.md\n' > .git/info/exclude; }
-
 test_docs_gate_missing_fields_fail() {
   # AC-1-20: a body without Size, Change or ADR fails and names the field.
   init_repo

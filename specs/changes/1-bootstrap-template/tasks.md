@@ -16,6 +16,8 @@ flowchart LR
   T5 --> T10
   T6 --> T10
   T9 --> T10 --> T11 --> T12 --> T13
+  T8 --> T14
+  T9 --> T14 --> T12
 ```
 
 ## T1: Skeleton, tools and `check-harness` core
@@ -147,10 +149,10 @@ flowchart LR
 
 **Blocked by:** T7, T8.
 
-- [ ] `.github/ruleset.json` (R14; check names match T7/T8 job names; empty bypass list)
-- [ ] `release-please-config.json`, `.release-please-manifest.json`, `version.txt` (`0.1.0`), `CHANGELOG.md`, release-please workflow
-- [ ] `.github/dependabot.yml` (github-actions, weekly, 3-day cooldown, grouped)
-- [ ] Test: every required check name in the ruleset exists as a job name in the workflows
+- [x] `.github/ruleset.json` (R14; check names match T7/T8 job names; empty bypass list)
+- [x] `release-please-config.json`, `.release-please-manifest.json`, `version.txt` (`0.1.0`), `CHANGELOG.md`, release-please workflow
+- [x] `.github/dependabot.yml` (github-actions, weekly, 3-day cooldown, grouped)
+- [x] Test: every required check name in the ruleset exists as a job name in the workflows
 
 ## T10: Bootstrap
 
@@ -182,7 +184,7 @@ flowchart LR
 
 **Delivers:** the public GitHub repo with the change open as a gated PR. **Each step that touches GitHub needs the owner's go-ahead.**
 
-**Blocked by:** T11.
+**Blocked by:** T11, T14.
 
 - [ ] Create public repo `solo-harness`; push the spec-only initial commit to `main`
 - [ ] Create issue #1; push branch `1-bootstrap-template`
@@ -199,3 +201,13 @@ flowchart LR
 - [ ] All required checks green, including `docs-gate` on this PR
 - [ ] Owner squash-merges; mark the repo as a template
 - [ ] Remind the owner about the deferred signed-commits change
+
+## T14: Dependabot PRs pass the gates
+
+**Delivers:** Dependabot PRs that can merge under the R14 ruleset. Found in the T9 review: they fail `docs-gate` (no `Size`/`Change`/`ADR` fields) and `test-oracle` (they change workflows without a `specs/` change). `pr-title` already passes through the `chore(deps)` commit prefix.
+
+**Blocked by:** T8, T9.
+
+- [ ] `docs-gate` and `test-oracle` pass when the PR author is `dependabot[bot]` and the PR changes only `uses:` pins in `.github/workflows/`; any other change still runs the full gate
+- [ ] Tests for both scripts: Dependabot pin-only PR passes; Dependabot PR with other changes and a human PR with the same diff still fail
+- [ ] Record the exemption in `design.md` §7

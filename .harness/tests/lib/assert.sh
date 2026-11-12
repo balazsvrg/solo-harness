@@ -38,3 +38,18 @@ numstat() {
   : > changes
   while (($#)); do printf '%s\t%s\t%s\0' "$1" "$2" "$3" >> changes; shift 3; done
 }
+
+# init_repo: make the current temp dir a repo for the CI gate scripts; their inputs stay untracked.
+init_repo() { git init -q .; printf 'changes\nbody.md\n' > .git/info/exclude; }
+
+# YAML readers for workflow files in the layout actionlint accepts (two-space indent).
+# top_block FILE KEY: the lines of a top-level KEY, without the KEY line.
+top_block() {
+  awk -v k="$2" '$0 ~ "^"k":" {on=1; next} on && /^[^ #]/ {on=0} on' "$1"
+}
+# job_names FILE: one job id per line.
+job_names() { top_block "$1" jobs | awk '/^  [A-Za-z0-9_-]+:/ {sub(/:.*/, ""); sub(/^ +/, ""); print}'; }
+# job_block FILE JOB: the lines of one job, without the job id line.
+job_block() {
+  top_block "$1" jobs | awk -v j="$2" '/^  [A-Za-z0-9_-]+:/ {on = ($1 == j":"); next} on'
+}
