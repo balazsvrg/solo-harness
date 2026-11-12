@@ -152,7 +152,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 
 - **AC-1-15** GIVEN no app source WHEN `make check` runs THEN it passes.
 - **AC-1-16** GIVEN a file `src/main.py` and the placeholder `check-app` WHEN `make check` runs THEN it fails with `no app checks configured`.
-- **AC-1-17** The template repo's own CI runs `check-harness` only.
+- **AC-1-17** GIVEN the template repo WHEN CI's `check` job runs `make check` THEN `check-app` passes because no app source exists.
 
 **R11. Git hooks** are plain shell in `.githooks/`, activated with `git config core.hooksPath .githooks`.
 
