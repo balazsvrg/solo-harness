@@ -6,10 +6,7 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 load_changes "${1:-}"
 
-total=0
-for i in "${!CHANGE_PATHS[@]}"; do
-  glob_match "${CHANGE_PATHS[i]}" "${SIZE_EXCLUDE_GLOBS[@]}" || total=$((total + CHANGE_LINES[i]))
-done
+total=$(counted_lines)
 
 if ((total <= PR_SIZE_MAX_LINES)); then
   log "pr-size: $total changed lines (limit $PR_SIZE_MAX_LINES)"

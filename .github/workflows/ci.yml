@@ -101,6 +101,25 @@ jobs:
           git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
           .harness/ci/pr-size.sh "$RUNNER_TEMP/changes"
 
+  # R13. It reads the full PR tree: archive folder, ADR files, test files, .docs-map.
+  docs-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/body.md"
+          git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
+          .harness/ci/docs-gate.sh "$RUNNER_TEMP/changes" "$RUNNER_TEMP/body.md"
+
   test-oracle:
     runs-on: ubuntu-latest
     timeout-minutes: 5

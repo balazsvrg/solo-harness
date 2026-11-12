@@ -31,3 +31,10 @@ copy_repo() {
   cp -a "$HARNESS_ROOT/." "$d/"
   printf '%s\n' "$d"
 }
+
+# numstat ADDED DELETED PATH...: write NUL-terminated `git diff --numstat -z` records
+# to ./changes, the input of the CI gate scripts.
+numstat() {
+  : > changes
+  while (($#)); do printf '%s\t%s\t%s\0' "$1" "$2" "$3" >> changes; shift 3; done
+}

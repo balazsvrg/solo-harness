@@ -93,5 +93,14 @@ load_changes() {
   done < "$1"
 }
 
+# counted_lines: print the CHANGE_LINES total, without files in SIZE_EXCLUDE_GLOBS.
+counted_lines() {
+  local i total=0
+  for i in "${!CHANGE_PATHS[@]}"; do
+    glob_match "${CHANGE_PATHS[i]}" "${SIZE_EXCLUDE_GLOBS[@]}" || total=$((total + CHANGE_LINES[i]))
+  done
+  printf '%s' "$total"
+}
+
 # has_label NAME: true if PR_LABELS contains NAME exactly.
 has_label() { [[ ",${PR_LABELS:-}," == *",$1,"* ]]; }

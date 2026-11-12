@@ -1,0 +1,28 @@
+name: Change request
+description: Ask for new or changed behaviour.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong or missing now? Who has the problem?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance ideas
+      description: How do we know the change is done? One idea per line.
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Proposed size
+      description: See the S/M/L sizes in AGENTS.md. The owner confirms the size.
+      options:
+        - S
+        - M
+        - L
+    validations:
+      required: true

@@ -128,14 +128,14 @@ flowchart LR
 
 **Blocked by:** T2, T7.
 
-- [ ] `.harness/ci/docs-gate.sh` (AC search limited to `TEST_GLOBS`), `docs-gate` job, `.docs-map` (empty, with format comment)
-- [ ] `.github/PULL_REQUEST_TEMPLATE.md`, issue forms "Change request" and "Bug"
-- [ ] AC-1-20 missing/invalid fields fail
-- [ ] AC-1-21 S PR over 150 lines or touching a living spec fails without `size-exception`
-- [ ] AC-1-22 M/L PR without archive, with unchecked tasks or without living-spec change fails
-- [ ] AC-1-23 uncovered AC id fails
-- [ ] AC-1-24 missing ADR file fails; `none` on L is flagged
-- [ ] AC-1-25 `.docs-map` rule enforcement and `Docs: unchanged` escape
+- [x] `.harness/ci/docs-gate.sh` (AC search limited to `TEST_GLOBS`), `docs-gate` job, `.docs-map` (empty, with format comment)
+- [x] `.github/PULL_REQUEST_TEMPLATE.md`, issue forms "Change request" and "Bug"
+- [x] AC-1-20 missing/invalid fields fail
+- [x] AC-1-21 S PR over 150 lines or touching a living spec fails without `size-exception`
+- [x] AC-1-22 M/L PR without archive, with unchecked tasks or without living-spec change fails
+- [x] AC-1-23 uncovered AC id fails
+- [x] AC-1-24 missing ADR file fails; `none` on L is flagged
+- [x] AC-1-25 `.docs-map` rule enforcement and `Docs: unchanged` escape
 
 ## T9: Ruleset, release and dependencies
 

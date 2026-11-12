@@ -3,7 +3,7 @@
 # the layout actionlint accepts: two-space indent, one job per `  name:` line.
 
 WF=$HARNESS_ROOT/.github/workflows
-CI_JOBS='check deps pr-size pr-title secrets ste-lint test-oracle zizmor'
+CI_JOBS='check deps docs-gate pr-size pr-title secrets ste-lint test-oracle zizmor'
 
 # top_block FILE KEY: the lines of a top-level KEY, without the KEY line.
 top_block() {
@@ -81,9 +81,22 @@ test_ci_ste_lint_is_not_blocking() {
 }
 
 test_ci_gate_jobs_call_harness_scripts() {
-  # R12: pr-size and test-oracle run the tested scripts, not inline logic.
+  # R12: pr-size, test-oracle and docs-gate run the tested scripts, not inline logic.
+  job_block "$WF/ci.yml" docs-gate | grep -q '.harness/ci/docs-gate.sh' || fail 'docs-gate job does not call .harness/ci/docs-gate.sh'
   job_block "$WF/ci.yml" pr-size | grep -q '.harness/ci/pr-size.sh' || fail 'pr-size job does not call .harness/ci/pr-size.sh'
   job_block "$WF/ci.yml" test-oracle | grep -q '.harness/ci/test-oracle.sh' || fail 'test-oracle job does not call .harness/ci/test-oracle.sh'
+}
+
+test_workflows_pr_body_only_through_env() {
+  # R12: the PR body goes to a step only through env:, never into a run: script (script injection).
+  local f line
+  while IFS= read -r f; do
+    while IFS= read -r line; do
+      [[ $line =~ ^\ +PR_BODY:\ \$\{\{\ github\.event\.pull_request\.body\ \}\}$ ]] ||
+        fail "${f##*/}: PR body outside an env: PR_BODY line: $line"
+    done < <(grep -E 'pull_request\.body' "$f")
+  done < <(workflows)
+  job_block "$WF/ci.yml" docs-gate | grep -q 'PR_BODY:' || fail 'docs-gate job does not read PR_BODY'
 }
 
 test_ci_deps_switches_on_visibility() {

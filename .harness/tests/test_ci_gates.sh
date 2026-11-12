@@ -1,15 +1,9 @@
 # shellcheck shell=bash
 # Tests for the CI gate scripts in .harness/ci/ (R12). Each script reads a
 # `git diff --numstat -z` file and the PR labels from PR_LABELS (comma-separated).
-# The inputs are small, so each test writes its own; T8 adds file fixtures for PR bodies.
+# The inputs are small, so each test writes its own with numstat (lib/assert.sh).
 
 pr_size() { "$HARNESS_ROOT/.harness/ci/pr-size.sh" "$@"; }
-
-# numstat ADDED DELETED PATH...: write NUL-terminated numstat records to ./changes.
-numstat() {
-  : > changes
-  while (($#)); do printf '%s\t%s\t%s\0' "$1" "$2" "$3" >> changes; shift 3; done
-}
 
 test_pr_size_passes_at_limit() {
   # R12 pr-size: 400 changed lines is the limit, not over it.
