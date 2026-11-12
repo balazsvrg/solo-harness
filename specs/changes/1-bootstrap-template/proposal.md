@@ -63,7 +63,7 @@ CLAUDE.md -> AGENTS.md         GEMINI.md -> AGENTS.md
 .github/{workflows/,ISSUE_TEMPLATE/,PULL_REQUEST_TEMPLATE.md,dependabot.yml,ruleset.json}
 .githooks/{pre-commit,commit-msg}
 docs/{product.md,architecture.md,adr/}   GLOSSARY.md
-specs/<capability>.md   specs/changes/<id>/   specs/changes/archive/
+specs/<capability>.md   specs/changes/<id>-<slug>/   specs/changes/archive/
 .harness/                      # harness internals: config, checks, CI gate scripts, own tests
 scripts/{bootstrap,install-tools,vendor-diff}   Makefile   .docs-map   version.txt   CHANGELOG.md
 release-please-config.json   .release-please-manifest.json
@@ -83,8 +83,8 @@ LICENSE (MIT)   THIRD_PARTY_LICENSES.md   README.md
 | Skill | Source | Modified? |
 |---|---|---|
 | `grill-with-docs`, `grilling`, `codebase-design`, `tdd`, `diagnosing-bugs`, `code-review`, `retro`, `writing-for-agents`, `domain-modeling`, `wizard`, `implement` | mattpocock/skills (MIT) | `code-review`: docs-drift rule added to standards axis (R13); others unmodified unless a tracker reference needs redirecting to `specs/`. `grilling` is included because `grill-with-docs` calls it. |
-| `to-spec` | mattpocock/skills | Writes `specs/changes/<id>/proposal.md` with OpenSpec delta sections and `AC-<id>-<n>` IDs instead of publishing to a tracker |
-| `to-tickets` | mattpocock/skills | Writes tickets as sections of one `specs/changes/<id>/tasks.md` (title, delivers, blocked by, acceptance checkboxes) |
+| `to-spec` | mattpocock/skills | Writes `specs/changes/<id>-<slug>/proposal.md` with OpenSpec delta sections and `AC-<id>-<n>` IDs instead of publishing to a tracker |
+| `to-tickets` | mattpocock/skills | Writes tickets as sections of one `specs/changes/<id>-<slug>/tasks.md` (title, delivers, blocked by, acceptance checkboxes) |
 | `pr` | mattpocock/skills | Fills the PR template fields (R10) and calls `asd-ste100` in STE-flavored mode for the description |
 | `handoff` | mattpocock/skills | Writes to gitignored `.scratch/handoffs/`; calls `asd-ste100` in strict mode |
 | `asd-ste100` | danyuchn/asd-ste100-skill (MIT) | Unmodified (includes `scripts/ste-lint.py`) |
@@ -175,11 +175,11 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 | `tools-outdated` | Separate monthly scheduled workflow (R22) | No |
 | CodeQL, push protection | Enabled by bootstrap on public repos only | — |
 
-**R13. Documentation gate (`docs-gate`).** Parses these PR-body fields: `Size: S|M|L`, `Change: specs/changes/<id>|none`, `ADR: docs/adr/<file>|none – <reason>`, `Docs: unchanged – <reason>` (optional).
+**R13. Documentation gate (`docs-gate`).** Parses these PR-body fields: `Size: S|M|L`, `Change: specs/changes/<id>-<slug>|none`, `ADR: docs/adr/<file>|none – <reason>`, `Docs: unchanged – <reason>` (optional).
 
 - **AC-1-20** Missing or invalid `Size`/`Change`/`ADR` fields fail the job.
 - **AC-1-21** An S PR fails if it exceeds 150 changed lines (excluding lockfiles) or modifies `specs/<capability>.md`, unless labelled `size-exception`.
-- **AC-1-22** An M/L PR fails unless it adds `specs/changes/archive/*-<id>/` with `proposal.md` and `tasks.md` (plus `design.md` for L), the archived `tasks.md` has no unchecked `- [ ]`, and at least one `specs/<capability>.md` is modified.
+- **AC-1-22** An M/L PR fails unless it adds `specs/changes/archive/YYYY-MM-DD-<id>-<slug>/` with `proposal.md` and `tasks.md` (plus `design.md` for L), the archived `tasks.md` has no unchecked `- [ ]`, and at least one `specs/<capability>.md` is modified.
 - **AC-1-23** An M/L PR fails if any `AC-<id>-<n>` in its proposal is not found in a test file.
 - **AC-1-24** `ADR:` pointing to a file fails if that file does not exist. `ADR: none` on an L PR passes but is flagged in the job summary.
 - **AC-1-25** For each `.docs-map` rule (`<glob> -> <doc path>`), a PR that touches the glob but not the doc fails unless it has a `Docs: unchanged – <reason>` line. `.docs-map` ships empty.
