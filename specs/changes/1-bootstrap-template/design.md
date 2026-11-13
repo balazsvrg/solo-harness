@@ -187,7 +187,7 @@ flowchart TD
   A1 -- yes --> A2{every AC id found in a test file?}
   A2 -- no --> X4[fail AC-1-23]
   A2 -- yes --> D
-  D{ADR field points to existing file or 'none – reason'?} -- no --> X5[fail AC-1-24]
+  D{every ADR file in the list exists, or 'none – reason'?} -- no --> X5[fail AC-1-24]
   D -- yes --> DM{.docs-map rules satisfied or Docs: unchanged?}
   DM -- no --> X6[fail AC-1-25]
   DM -- yes --> OK[pass; summary flags ADR none on L]

@@ -1,6 +1,6 @@
 Size: <S|M|L>
 Change: <specs/changes/<id>-<slug> or none>
-ADR: <docs/adr/<file> or none – <reason>>
+ADR: <docs/adr/<file>[, docs/adr/<file>...] or none – <reason>>
 
 <!--
 The docs-gate CI job reads the three lines above. Replace each <...> with a value.

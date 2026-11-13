@@ -24,7 +24,7 @@ Add `Closes #<id>` when the PR finishes the change.
 ```markdown
 Size: <S|M|L>
 Change: <specs/changes/<id>-<slug>|none>
-ADR: <docs/adr/<file>|none – <reason>>
+ADR: <docs/adr/<file>[, docs/adr/<file>...]|none – <reason>>
 Docs: unchanged – <reason>
 
 ## Summary

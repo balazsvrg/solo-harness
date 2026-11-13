@@ -75,8 +75,9 @@ adr=$(field ADR) || true
 [[ $size =~ ^(S|M|L)$ ]] || fail_ac AC-1-20 "Size: must be S, M or L (got '${size:-missing}')"
 [[ $change == none || $change =~ ^specs/changes/([0-9]+-[a-z0-9-]+)$ ]] ||
   fail_ac AC-1-20 "Change: must be specs/changes/<id>-<slug> or none (got '${change:-missing}')"
-[[ $adr =~ ^docs/adr/[^/[:space:]]+$ || $adr =~ ^none${DASH}${REASON}$ ]] ||
-  fail_ac AC-1-20 "ADR: must be docs/adr/<file> or 'none – <reason>' (got '${adr:-missing}')"
+ADR_FILE='docs/adr/[^/,[:space:]]+'
+[[ $adr =~ ^${ADR_FILE}(,[[:space:]]*${ADR_FILE})*$ || $adr =~ ^none${DASH}${REASON}$ ]] ||
+  fail_ac AC-1-20 "ADR: must be docs/adr/<file>[, docs/adr/<file>...] or 'none – <reason>' (got '${adr:-missing}')"
 [[ $size =~ ^(M|L)$ && $change == none ]] && fail_ac AC-1-20 "Change: an $size PR must name its folder specs/changes/<id>-<slug>"
 ((${#failures[@]} == 0)) || { finish; exit 1; }
 
@@ -151,7 +152,10 @@ fi
 
 # --- AC-1-24: ADR --------------------------------------------------------------
 if [[ $adr == docs/adr/* ]]; then
-  [[ -f $adr ]] || fail_ac AC-1-24 "ADR: $adr is not in the checkout"
+  IFS=', ' read -ra adr_files <<< "$adr"
+  for f in "${adr_files[@]}"; do
+    [[ -f $f ]] || fail_ac AC-1-24 "ADR: $f is not in the checkout"
+  done
 elif [[ $size == L ]]; then
   notes+=("ADR: none on an L PR. An L change makes a hard-to-reverse choice; check the reason.")
 fi

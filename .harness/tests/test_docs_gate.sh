@@ -195,6 +195,26 @@ test_docs_gate_missing_adr_file_fails() {
   assert_status 0 gate changes body.md
 }
 
+test_docs_gate_accepts_adr_list() {
+  # AC-1-20: ADR: can list more than one file, separated by commas.
+  init_repo
+  numstat 1 0 src/a.py
+  put docs/adr/0001-a.md
+  put docs/adr/0002-b.md
+  body 'Size: S' 'Change: none' 'ADR: docs/adr/0001-a.md, docs/adr/0002-b.md'
+  assert_status 0 gate changes body.md
+  local bad
+  for bad in 'docs/adr/0001-a.md,' 'docs/adr/0001-a.md, none – x' 'docs/adr/0001-a.md docs/adr/0002-b.md'; do
+    body 'Size: S' 'Change: none' "ADR: $bad"
+    assert_status 1 gate changes body.md
+    assert_contains "$OUT" 'AC-1-20'
+  done
+  # AC-1-24: each file in the list must be in the checkout.
+  body 'Size: S' 'Change: none' 'ADR: docs/adr/0001-a.md, docs/adr/0003-missing.md'
+  assert_status 1 gate changes body.md
+  assert_contains "$OUT" 'docs/adr/0003-missing.md'
+}
+
 test_docs_gate_adr_none_on_l_is_flagged() {
   # AC-1-24: ADR: none on an L PR passes, and the job summary flags it.
   finished_l_change

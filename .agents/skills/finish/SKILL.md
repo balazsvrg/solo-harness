@@ -36,7 +36,7 @@ Collect candidates from the proposal (including any decisions section), `design.
 
 Show the owner the full candidate list, one line each. For each candidate the owner confirms, call the Skill tool with `domain-modeling` and write `docs/adr/NNNN-<slug>.md` with the next free number. When a diagram helps the reader of an ADR, draw it as a Mermaid code block. Add new or sharpened terms to `GLOSSARY.md`.
 
-Set the PR `ADR:` field to the new ADR files, or to `none – <reason>` when the owner confirmed none. On a Size L change, `none` is flagged by `docs-gate`; give a reason the reviewer will accept.
+Set the PR `ADR:` field to the new ADR files as a comma-separated list (`docs/adr/0001-a.md, docs/adr/0002-b.md`), or to `none – <reason>` when the owner confirmed none. On a Size L change, `none` is flagged by `docs-gate`; give a reason the reviewer will accept.
 
 Done when every candidate is either an ADR file or rejected by the owner, and the PR `ADR:` field matches.
 

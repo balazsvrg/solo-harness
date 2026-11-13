@@ -177,7 +177,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 | `tools-outdated` | Separate monthly scheduled workflow (R22) | No |
 | CodeQL, push protection | Enabled by bootstrap on public repos only | — |
 
-**R13. Documentation gate (`docs-gate`).** Parses these PR-body fields: `Size: S|M|L`, `Change: specs/changes/<id>-<slug>|none`, `ADR: docs/adr/<file>|none – <reason>`, `Docs: unchanged – <reason>` (optional).
+**R13. Documentation gate (`docs-gate`).** Parses these PR-body fields: `Size: S|M|L`, `Change: specs/changes/<id>-<slug>|none`, `ADR: docs/adr/<file>[, docs/adr/<file>…]|none – <reason>` (a comma-separated list when the change records more than one ADR), `Docs: unchanged – <reason>` (optional).
 
 - **AC-1-20** Missing or invalid `Size`/`Change`/`ADR` fields fail the job.
 - **AC-1-21** An S PR fails if it exceeds 150 changed lines (excluding lockfiles) or modifies `specs/<capability>.md`, unless labelled `size-exception`.
