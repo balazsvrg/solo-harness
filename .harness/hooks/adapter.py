@@ -6,7 +6,7 @@ Usage: adapter.sh AGENT EVENT < hook-input.json
 
 It turns the agent's hook input into the input of guard-bash.sh, fmt.sh or stop-check.sh,
 checks file edits and reads against the R6 paths in policy.py, and prints the result in the
-agent's own format. The formats are in specs/changes/1-bootstrap-template/design.md, section 6.2.
+agent's own format. The rules are in specs/agent-configuration.md (R6, R7).
 """
 import json
 import os

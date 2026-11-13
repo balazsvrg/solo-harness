@@ -8,8 +8,8 @@
 # .agents/skills/VENDORED.md. Changes: python3 parser instead of jq and grep;
 # splits compound commands and unwraps wrappers, `bash -c` and command
 # substitution; plain `git push` to a feature branch is allowed; adds the R6 and
-# AC-1-35 cases. The rules and limits are in
-# specs/changes/1-bootstrap-template/design.md section 6.
+# AC-1-35 cases. The rules and limits are in specs/agent-configuration.md
+# (R6, R7, "Guard limits").
 set -uo pipefail
 
 # shellcheck disable=SC2016 # the Python program is literal text

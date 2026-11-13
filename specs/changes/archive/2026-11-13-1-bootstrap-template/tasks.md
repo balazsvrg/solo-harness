@@ -218,10 +218,13 @@ flowchart LR
 
 **Blocked by:** T12.
 
-- [ ] Run `finish`: verify, write living `specs/<capability>.md` files from R1–R21, archive to `specs/changes/archive/YYYY-MM-DD-1-bootstrap-template/`, ADRs for the nine decisions (owner confirms each)
-- [ ] All required checks green, including `docs-gate` on this PR
-- [ ] Owner squash-merges; mark the repo as a template
-- [ ] Remind the owner about the deferred signed-commits change
+- [x] Run `finish`: verify, write living `specs/<capability>.md` files from R1–R22, archive to `specs/changes/archive/YYYY-MM-DD-1-bootstrap-template/`, ADRs for the decisions the owner confirmed (eleven)
+
+**After the `finish` commit.** These steps happen after the `finish` commit, so they are not checkboxes: the archived `tasks.md` must have no unchecked item (AC-1-22). The checks go green before the merge; the other two steps follow the merge.
+
+- All required checks green, including `docs-gate` on this PR.
+- Owner squash-merges; mark the repo as a template.
+- Remind the owner about the deferred signed-commits change.
 
 ## T14: Dependabot PRs pass the gates
 
