@@ -195,6 +195,8 @@ flowchart TD
 
 The script writes a Markdown summary to `$GITHUB_STEP_SUMMARY` when that variable is set, and to stdout otherwise.
 
+**Dependabot exemption (T14).** A Dependabot PR has no `Size`/`Change`/`ADR` fields and changes workflows without a `specs/` change, so `docs-gate` and `test-oracle` would block it. Both pass it when `dependabot_pin_only` in `.harness/lib/common.sh` is true: the PR author (`PR_AUTHOR`, from `github.event.pull_request.user.login`) is `dependabot[bot]`, every changed file is in `.github/workflows/`, and the `git diff -U0 --no-renames` file (`PR_DIFF`) changes only `uses:` lines: in each hunk the n-th removed line and the n-th added line are the same up to the `@` (indent, step marker, action), and the new ref is a full commit SHA. A new, deleted or renamed file, any other changed line, a moved, swapped or re-indented step, a different action, a ref that is not a SHA, or a missing diff file runs the full gate. A commit that a person adds to a Dependabot branch is in the diff, so it gets the full gate too. `pr-title` needs no exemption: Dependabot titles start with `chore(deps)`.
+
 ## 8. Bootstrap
 
 ```mermaid

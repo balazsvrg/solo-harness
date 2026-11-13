@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # docs-gate (R13): check the PR-body fields and the documentation that the PR size needs.
-# Usage: PR_LABELS=a,b docs-gate.sh CHANGES_FILE BODY_FILE
+# Usage: PR_LABELS=a,b [PR_AUTHOR=login PR_DIFF=file] docs-gate.sh CHANGES_FILE BODY_FILE
+# A Dependabot PR that changes only uses: pins passes (dependabot_pin_only in common.sh).
 # Run it at the root of the PR merge checkout. It writes a Markdown summary to
 # $GITHUB_STEP_SUMMARY when that is set, else to stdout. Failures also go to stderr.
 set -euo pipefail
@@ -9,6 +10,16 @@ source "$(dirname "$0")/../lib/common.sh"
   { err "usage: ${0##*/} CHANGES_FILE BODY_FILE (CHANGES_FILE: git diff --numstat -z --no-renames output)"; exit 2; }
 load_changes "$1"
 body_file=$2
+
+# to_summary CMD...: run CMD with its output to $GITHUB_STEP_SUMMARY when that is set, else to stdout.
+to_summary() { if [[ -n ${GITHUB_STEP_SUMMARY:-} ]]; then "$@" >> "$GITHUB_STEP_SUMMARY"; else "$@"; fi; }
+
+if dependabot_pin_only; then
+  # shellcheck disable=SC2016 # literal backticks
+  msg='Dependabot PR that changes only `uses:` pins: the field and docs checks do not apply.'
+  to_summary printf '## docs-gate: pass\n\n%s\n' "$msg"
+  exit 0
+fi
 
 failures=() notes=()
 fail_ac() { failures+=("**$1** $2"); err "docs-gate: $1: $2"; }
@@ -52,7 +63,7 @@ summary() {
 }
 
 finish() {
-  if [[ -n ${GITHUB_STEP_SUMMARY:-} ]]; then summary >> "$GITHUB_STEP_SUMMARY"; else summary; fi
+  to_summary summary
   ((${#failures[@]} == 0))
 }
 

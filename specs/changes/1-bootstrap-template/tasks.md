@@ -227,6 +227,6 @@ flowchart LR
 
 **Blocked by:** T8, T9.
 
-- [ ] `docs-gate` and `test-oracle` pass when the PR author is `dependabot[bot]` and the PR changes only `uses:` pins in `.github/workflows/`; any other change still runs the full gate
-- [ ] Tests for both scripts: Dependabot pin-only PR passes; Dependabot PR with other changes and a human PR with the same diff still fail
-- [ ] Record the exemption in `design.md` §7
+- [x] `docs-gate` and `test-oracle` pass when the PR author is `dependabot[bot]` and the PR changes only `uses:` pins in `.github/workflows/`; any other change still runs the full gate
+- [x] Tests for both scripts: Dependabot pin-only PR passes; Dependabot PR with other changes and a human PR with the same diff still fail
+- [x] Record the exemption in `design.md` §7

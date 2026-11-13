@@ -118,3 +118,15 @@ test_copilot_setup_steps() {
   assert_contains "$(job_block "$f" copilot-setup-steps)" 'make tools'
   assert_contains "$(job_block "$f" copilot-setup-steps)" 'git config core.hooksPath .githooks'
 }
+
+# shellcheck disable=SC2016 # literal workflow text
+test_gates_get_pr_author_and_diff() {
+  # R17: docs-gate and test-oracle get the PR author and the diff, to pass Dependabot pin updates.
+  local j b
+  for j in docs-gate test-oracle; do
+    b=$(job_block "$WF/ci.yml" "$j")
+    assert_contains "$b" 'PR_AUTHOR: ${{ github.event.pull_request.user.login }}'
+    assert_contains "$b" 'git diff -U0 --no-renames HEAD^1 HEAD > "$PR_DIFF"'
+    assert_contains "$b" 'PR_DIFF: ${{ runner.temp }}/pr.diff'
+  done
+}

@@ -115,9 +115,12 @@ jobs:
       - env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_DIFF: ${{ runner.temp }}/pr.diff
         run: |
           printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/body.md"
           git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
+          git diff -U0 --no-renames HEAD^1 HEAD > "$PR_DIFF"
           .harness/ci/docs-gate.sh "$RUNNER_TEMP/changes" "$RUNNER_TEMP/body.md"
 
   test-oracle:
@@ -130,8 +133,13 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
-      - run: |
+      # A Dependabot PR that changes only uses: pins passes (R17).
+      - env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_DIFF: ${{ runner.temp }}/pr.diff
+        run: |
           git diff --numstat -z --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/changes"
+          git diff -U0 --no-renames HEAD^1 HEAD > "$PR_DIFF"
           .harness/ci/test-oracle.sh "$RUNNER_TEMP/changes"
 
   # Advice only (AC-1-11): never a required check.

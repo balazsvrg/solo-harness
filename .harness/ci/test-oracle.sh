@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # test-oracle gate (R12): a PR that changes the oracle (tests, snapshots, workflows,
 # CI config, gate settings, pinned tools) must also change specs/, so the reason is on record.
-# Usage: test-oracle.sh CHANGES_FILE
+# Usage: [PR_AUTHOR=login PR_DIFF=file] test-oracle.sh CHANGES_FILE
+# A Dependabot PR that changes only uses: pins passes (dependabot_pin_only in common.sh).
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 load_changes "${1:-}"
+
+if dependabot_pin_only; then
+  log 'test-oracle: Dependabot PR that changes only uses: pins; no specs/ change needed'
+  exit 0
+fi
 
 guarded=() specs=0
 for path in "${CHANGE_PATHS[@]}"; do

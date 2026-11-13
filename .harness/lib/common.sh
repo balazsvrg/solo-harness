@@ -104,3 +104,46 @@ counted_lines() {
 
 # has_label NAME: true if PR_LABELS contains NAME exactly.
 has_label() { [[ ",${PR_LABELS:-}," == *",$1,"* ]]; }
+
+# dependabot_pin_only: true if the PR is a Dependabot update of action pins only:
+# PR_AUTHOR is dependabot[bot], every changed file is in .github/workflows/, and the
+# `git diff -U0 --no-renames` file PR_DIFF changes only uses: lines. In each hunk the
+# n-th removed line and the n-th added line must be the same up to the "@" (indent,
+# step marker and action), and the added ref must be a full commit SHA. Any other
+# diff, or no PR_DIFF, is false: the full gate runs. Needs load_changes first.
+dependabot_pin_only() {
+  [[ ${PR_AUTHOR:-} == 'dependabot[bot]' && -n ${PR_DIFF:-} && -r $PR_DIFF ]] || return 1
+  ((${#CHANGE_PATHS[@]})) || return 1
+  local p line in_hunk=0 pins=0 old=() new=()
+  for p in "${CHANGE_PATHS[@]}"; do [[ $p == .github/workflows/* ]] || return 1; done
+  while IFS= read -r line; do
+    case $line in
+      'diff --git '* | '@@ '*)
+        pin_hunk_ok || return 1
+        if [[ $line == '@@ '* ]]; then in_hunk=1; else in_hunk=0; fi
+        ;;
+      *)
+        if ((!in_hunk)); then
+          # File headers only: a new, deleted or renamed file is not a pin update.
+          [[ $line == 'index '* || $line == '--- a/'* || $line == '+++ b/'* ]] || return 1
+        elif [[ $line == -* ]]; then old+=("${line:1}")
+        elif [[ $line == +* ]]; then new+=("${line:1}"); pins=$((pins + 1))
+        fi
+        ;;
+    esac
+  done < "$PR_DIFF"
+  pin_hunk_ok && ((pins))
+}
+
+# pin_hunk_ok: true if the hunk in `old` and `new` (from dependabot_pin_only) changes
+# only the ref of each uses: line, to a full commit SHA. Empties both lists.
+pin_hunk_ok() {
+  local i re='^([[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*[^@[:space:]]+)@([^[:space:]]+)([[:space:]]+#.*)?$' head
+  ((${#old[@]} == ${#new[@]})) || return 1
+  for i in "${!old[@]}"; do
+    [[ ${old[i]} =~ $re ]] || return 1
+    head=${BASH_REMATCH[1]}
+    [[ ${new[i]} =~ $re && ${BASH_REMATCH[1]} == "$head" && ${BASH_REMATCH[3]} =~ ^[0-9a-f]{40}$ ]] || return 1
+  done
+  old=() new=()
+}

