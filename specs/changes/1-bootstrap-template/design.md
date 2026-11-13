@@ -10,7 +10,7 @@ The harness must work on a fresh Linux or macOS machine and on `ubuntu-latest` r
 |---|---|---|
 | `bash` ≥ 4, `git`, `make` | Scripts, hooks, task runner | Assumed present |
 | `python3` (stdlib only) | JSON/YAML-light parsing in scripts, `ste-lint.py` | Assumed present; no `pip install` |
-| `gh` | Bootstrap GitHub steps, `--add-agent` | Assumed present; bootstrap checks `gh auth status` |
+| `gh` | Bootstrap GitHub steps, `--add-agent` | Assumed present; bootstrap reads the repo with `gh api` first and stops with a `gh auth login` hint if that fails |
 | `shellcheck`, `actionlint`, `gitleaks`, `osv-scanner` | Lints and scanners | Pinned binaries downloaded by `scripts/install-tools` into gitignored `.harness/bin/`, verified against SHA-256 values in `.harness/tools.lock` |
 | `zizmor` | Workflow audit | CI only, through `zizmorcore/zizmor-action` pinned by SHA |
 
@@ -84,7 +84,7 @@ scripts/                      # only commands the owner runs directly
 - Content criteria (e.g. AC-1-3, AC-1-10) are tested by asserting on required headings or lines, not on exact prose.
 - CI gates are tested by calling `.harness/ci/*.sh` with fixtures: a PR body file, a list of changed files with line counts, and labels. The scripts take these as arguments or environment variables, never by calling the GitHub API themselves. The workflows gather the data and pass it in: the changed files are a `git diff --numstat -z --no-renames` file given as the first argument (`-z` keeps unusual paths unquoted), and the labels are `PR_LABELS` (comma-separated). Shared input helpers live in `.harness/lib/common.sh`. The gate tests write their small numstat inputs inline; PR-body fixtures go in `.harness/tests/fixtures/`.
 - Hooks are tested by piping the JSON Claude Code would send on stdin and asserting on the exit code and output.
-- `make test-bootstrap` copies the repo to a temp dir with `cp -a`, runs `scripts/bootstrap --dry-run --local` and `--local` with scripted answers (`BOOTSTRAP_ANSWERS` env var), and asserts the resulting tree.
+- `make test-bootstrap` copies the repo to a temp dir with `cp -a`, runs `scripts/bootstrap --dry-run --local` and `--local` with scripted answers (`BOOTSTRAP_ANSWERS` env var), and asserts the resulting tree. The GitHub steps are tested the same way, with `gh_api` replaced by a fake that a sourced overrides file defines (`.harness/tests/lib/fake_gh.sh`). The fake answers from state files and logs every call, so a test can assert that a dry run makes no write.
 
 ## 5. Harness boundary and test files
 
@@ -217,7 +217,7 @@ flowchart TD
 
 - **Template mode:** only with the flag `--template`. A repo made with "Use this template" has the same files as the template, so file checks cannot tell the two apart. Without the flag, a missing `.template-version` means a first project run, and a present one means a re-run. In template mode bootstrap never deletes or renames anything.
 - **Idempotency:** every step first checks the current state (label exists, ruleset with the same name exists and matches, hooksPath already set, file already deleted) and prints `ok` or `changed`.
-- **Dry run:** all mutating commands go through `run` in `common.sh`, which prints instead of executing when `DRY_RUN=1`.
+- **Dry run:** all mutating local commands go through `run` in `common.sh`, which prints instead of executing when `DRY_RUN=1`. GitHub calls go through `gh_read` and `gh_write` in `scripts/bootstrap`: a dry run prints both, does the reads and skips the writes.
 - **`--add-agent`:** reads the template repo and version from `.template-version`, downloads that tag's tarball with `gh api`, and copies only that agent's paths.
 - **AI attribution:** one yes/no question, default no (keep). On yes, bootstrap writes the "no attribution" setting into each selected agent's project config that supports one; for Claude Code that is the attribution setting in `.claude/settings.json` (commit and PR text set to empty). Agents without such a setting are named in the summary. Checked on 2026-11-13: Claude Code `attribution: {"commit": "", "pr": "", "sessionUrl": false}` in `.claude/settings.json` (this form also works in versions before `attribution: false`); Copilot CLI `includeCoAuthoredBy: false` in `.github/copilot/settings.json` (a repo-overridable key); Codex has no repo setting (`commit_attribution` was removed); Antigravity documents none. Template mode never asks, so this repo keeps its `Co-Authored-By` trailers. `BOOTSTRAP_ANSWERS` carries the answer in tests.
 - **Plugin duplicates:** reads `~/.claude/settings.json` `enabledPlugins` and the skill folder names inside each enabled plugin's cache directory. Any plugin with a skill name that matches a folder in `.agents/skills/` gets `"<plugin>": false` in the project's `.claude/settings.json`.

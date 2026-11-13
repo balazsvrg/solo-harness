@@ -175,9 +175,9 @@ flowchart LR
 
 **Blocked by:** T10a.
 
-- [ ] Template mode (GitHub steps only, never deletes or renames), repo options, labels, ruleset create-or-update by name, honor mode on 403, CodeQL and push protection on public repos, wizard-style human steps
-- [ ] Every `gh api` call checked against current GitHub docs; tests replace `gh_api` through a sourced overrides file
-- [ ] AC-1-29 dry run prints every `gh api` call and writes nothing remotely
+- [x] Template mode (GitHub steps only, never deletes or renames), repo options, labels, ruleset create-or-update by name, honor mode on 403, CodeQL and push protection on public repos, wizard-style human steps
+- [x] Every `gh api` call checked against current GitHub docs; tests replace `gh_api` through a sourced overrides file
+- [x] AC-1-29 dry run prints every `gh api` call and writes nothing remotely
 
 ## T10c: Bootstrap `--add-agent`
 

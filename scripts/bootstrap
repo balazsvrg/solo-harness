@@ -5,8 +5,12 @@
 #   scripts/bootstrap [--dry-run] [--local]   set up this project; safe to run again
 #   scripts/bootstrap --template [--dry-run]  template repo: GitHub steps only
 #
-#   --dry-run  print every action, change nothing
+#   --dry-run  print every action and every gh api call, change nothing
 #   --local    skip all GitHub steps
+#
+# GitHub steps need gh, logged in (gh auth login), in a clone with a GitHub remote:
+# repo options, labels, the ruleset (strict or honor mode), and on public repos
+# CodeQL and secret-scanning push protection.
 #
 # Every step checks the current state first and prints "ok" (nothing to do) or a
 # "changed" line for each change. Answers come from the terminal, or from BOOTSTRAP_ANSWERS in tests:
@@ -29,17 +33,20 @@ declare -A AGENT_PATHS=(
 )
 
 TEMPLATE=0 LOCAL=0 DRY_RUN=0 CHANGES=0 FIRST_RUN=1
-SELECTED='' NOTES=()
+SELECTED='' NOTES=() SKIPPED=''
 
 # --- output -----------------------------------------------------------------
 changed() { CHANGES=$((CHANGES + 1)); log "changed: $*"; }
 note() { NOTES+=("$*"); }
 
 # step NAME FUNCTION: run one step. It prints its own "changed" lines, or "ok: NAME".
+# A step that could not act sets SKIPPED to the reason.
 step() {
   local before=$CHANGES
+  SKIPPED=''
   "$2"
-  ((CHANGES > before)) || log "ok: $1"
+  if [[ -n $SKIPPED ]]; then log "skipped: $1 ($SKIPPED)"
+  elif ((CHANGES == before)); then log "ok: $1"; fi
 }
 
 # --- answers ----------------------------------------------------------------
@@ -227,8 +234,212 @@ step_template_files() {
   done
 }
 
-# TODO(T10b): repo options, labels, ruleset (R15), CodeQL, push protection.
-github_steps() { die 'GitHub steps are not implemented yet; use --local'; }
+# --- GitHub (R18 steps 4-6) ---------------------------------------------------
+# All calls go through gh_api, so tests replace it (.harness/tests/lib/fake_gh.sh).
+# gh fills {owner}/{repo} from the git remote of the current folder. Endpoints were
+# checked against docs.github.com/en/rest on 2026-11-13.
+REPO_API='repos/{owner}/{repo}'
+
+# gh_api ARGS...: `gh api ARGS`. The body goes to stdout; on failure gh exits non-zero
+# and its stderr names the status, for example "gh: Not Found (HTTP 404)".
+gh_api() {
+  command -v gh >/dev/null || { echo 'gh: GitHub CLI is not installed' >&2; return 1; }
+  gh api "$@"
+}
+
+# gh_shown ARGS...: the arguments as one line, with quotes around those that have spaces.
+gh_shown() {
+  local a shown=()
+  for a in "$@"; do [[ $a == *[[:space:]]* ]] && a="'$a'"; shown+=("$a"); done
+  printf '%s' "${shown[*]}"
+}
+
+# gh_call ARGS...: run gh_api and print the body. Returns 3 on HTTP 403 (the plan or
+# the token does not allow it); on other errors prints the error and returns 1.
+gh_call() {
+  local body err errfile rc=0
+  errfile=$(mktemp)
+  body=$(gh_api "$@" 2>"$errfile") || rc=$?
+  err=$(cat "$errfile"); rm -f "$errfile"
+  if ((rc == 0)); then printf '%s' "$body"; return 0; fi
+  [[ $err == *'(HTTP 403)'* ]] && return 3
+  err "gh api $(gh_shown "$@"): $err"
+  return 1
+}
+
+# gh_read ARGS...: a GitHub read. A dry run also does it, and prints it on stderr
+# (stdout carries the body).
+gh_read() {
+  ((DRY_RUN)) && printf 'dry-run: read: gh api %s\n' "$(gh_shown "$@")" >&2
+  gh_call "$@"
+}
+
+# gh_write ARGS...: a GitHub write. A dry run only prints it. Returns like gh_call.
+gh_write() {
+  if ((DRY_RUN)); then printf 'dry-run: gh api %s\n' "$(gh_shown "$@")"; return 0; fi
+  gh_call "$@" >/dev/null
+}
+
+# gh_stop WHAT STATUS: stop bootstrap after a write to WHAT failed with gh_call STATUS.
+gh_stop() {
+  (($2 == 3)) && die "GitHub refused to change $1 (HTTP 403). Run bootstrap as an admin of the repo."
+  die "cannot change $1 on GitHub"
+}
+
+# py_json EXPR [ARGS...]: evaluate a Python expression over the JSON on stdin (as `d`,
+# extra arguments as `a`). Lists print one item per line, strings print raw.
+py_json() {
+  python3 -c 'import json, sys
+text, dec, docs, i = sys.stdin.read(), json.JSONDecoder(), [], 0
+while i < len(text.rstrip()):  # gh --paginate prints one JSON document per page
+    while text[i].isspace(): i += 1
+    doc, i = dec.raw_decode(text, i); docs.append(doc)
+d = docs[0] if len(docs) == 1 else sum(docs, [])
+a = sys.argv[2:]
+def sub(w, h):
+    """True if h has every value of w; GitHub adds fields and may reorder lists."""
+    if isinstance(w, dict):
+        return isinstance(h, dict) and all(sub(v, h[k]) if k in h else v in ([], {}, None) for k, v in w.items())
+    if isinstance(w, list):
+        return isinstance(h, list) and len(w) == len(h) and all(any(sub(x, y) for y in h) for x in w)
+    return w == h
+r = eval(sys.argv[1])
+for x in (r if isinstance(r, list) else [r]):
+    print(x if isinstance(x, str) else json.dumps(x))' "$@"
+}
+
+REPO_JSON='' MODE='' REPO_URL=''
+
+# Step 4: squash merge only, PR title and body as the commit message, delete merged branches.
+step_repo_options() {
+  local fields
+  # A plain python3 block, not py_json: it needs statements, not one expression.
+  fields=$(python3 -c 'import json, sys
+want = {"allow_squash_merge": True, "allow_merge_commit": False, "allow_rebase_merge": False,
+        "delete_branch_on_merge": True, "squash_merge_commit_title": "PR_TITLE",
+        "squash_merge_commit_message": "PR_BODY"}
+have = json.load(sys.stdin)
+diff = [k for k in want if have.get(k) != want[k]]
+if any(k.startswith("squash_") for k in diff):  # GitHub wants these two together
+    diff = [k for k in want if k in diff or k.startswith("squash_")]
+print(" ".join(f"-F {k}={json.dumps(want[k]).strip(chr(34))}" for k in diff))' <<<"$REPO_JSON") ||
+    die 'cannot read the repo options'
+  [[ -n $fields ]] || return 0
+  # shellcheck disable=SC2086 # each item is "-F key=value"
+  gh_write -X PATCH "$REPO_API" $fields || gh_stop 'the repo options' $?
+  changed "repo options: ${fields//-F /}"
+}
+
+# name|color|description
+LABELS=(
+  'size/S|0e8a16|Small change: no new or changed requirement'
+  'size/M|fbca04|Medium change: new behaviour inside one capability'
+  'size/L|d93f0b|Large change: spans capabilities or is hard to reverse'
+  'size-exception|b60205|Allowed to exceed the size limits'
+  'agent|5319e7|Opened or changed by an AI agent'
+  'dependencies|0366d6|Dependency update'
+)
+
+# Step 5. GitHub label names ignore case, so "Size/S" counts as size/S.
+step_labels() {
+  local have line name color desc
+  have=$(gh_read --paginate "$REPO_API/labels?per_page=100" | py_json '[l["name"].lower() for l in d]') ||
+    die 'cannot read the repo labels'
+  for line in "${LABELS[@]}"; do
+    IFS='|' read -r name color desc <<<"$line"
+    grep -qxF "${name,,}" <<<"$have" && continue
+    gh_write -X POST "$REPO_API/labels" -f "name=$name" -f "color=$color" -f "description=$desc" || gh_stop "label $name" $?
+    changed "label $name"
+  done
+}
+
+# Step 6 (R15). The ruleset with the name in .github/ruleset.json is created, or
+# updated when it differs. GitHub answers 403 when the plan has no rulesets for this
+# repo (a private repo on GitHub Free): that is honor mode.
+step_ruleset() {
+  local file=.github/ruleset.json name list id='' current rc=0
+  name=$(py_json 'd["name"]' <"$file") || die "cannot read $file"
+  # Only this repo's rulesets: an organization ruleset with the same name is not ours.
+  list=$(gh_read "$REPO_API/rulesets?includes_parents=false") || rc=$?
+  if ((rc == 0)); then
+    id=$(py_json '[str(r["id"]) for r in d if r["name"] == a[0]]' "$name" <<<"$list" | head -1)
+    if [[ -z $id ]]; then
+      gh_write -X POST "$REPO_API/rulesets" --input "$file" || rc=$?
+      ((rc == 0)) && changed "ruleset $name created"
+    else
+      current=$(gh_read "$REPO_API/rulesets/$id") || rc=$?
+      if ((rc == 0)) && [[ $(py_json 'sub(json.load(open(a[0])), d)' "$file" <<<"$current") != true ]]; then
+        gh_write -X PUT "$REPO_API/rulesets/$id" --input "$file" || rc=$?
+        ((rc == 0)) && changed "ruleset $name updated"
+      fi
+    fi
+  fi
+  case $rc in
+    0) MODE=strict ;;
+    3) MODE=honor SKIPPED='GitHub answered 403: honor mode' ;;
+    *) die "cannot apply the ruleset $name" ;;
+  esac
+}
+
+# Step 6, public repos only: CodeQL default setup and secret-scanning push protection.
+# Private repos need GitHub Advanced Security for both, so bootstrap skips them.
+step_security() {
+  if [[ $(py_json 'd.get("visibility")' <<<"$REPO_JSON") != public ]]; then
+    note 'CodeQL and secret-scanning push protection are skipped: they need a public repo or GitHub Advanced Security.'
+    return 0
+  fi
+  local setup rc=0
+  setup=$(gh_read "$REPO_API/code-scanning/default-setup") || rc=$?
+  if ((rc == 0)) && [[ $(py_json 'd.get("state")' <<<"$setup") != configured ]]; then
+    gh_write -X PATCH "$REPO_API/code-scanning/default-setup" -f state=configured || rc=$?
+    ((rc == 0)) && changed 'CodeQL default setup turned on'
+  fi
+  ((rc == 0)) || note 'GitHub refused CodeQL default setup. Turn it on in Settings > Code security.'
+  if [[ $(py_json '[(d.get("security_and_analysis") or {}).get(k, {}).get("status")
+      for k in ("secret_scanning", "secret_scanning_push_protection")]' <<<"$REPO_JSON") != $'enabled\nenabled' ]]; then
+    rc=0
+    gh_write -X PATCH "$REPO_API" -f 'security_and_analysis[secret_scanning][status]=enabled' \
+      -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled' || rc=$?
+    if ((rc == 0)); then changed 'secret scanning and push protection turned on'
+    else note 'GitHub refused secret-scanning push protection. Turn it on in Settings > Code security.'; fi
+  fi
+}
+
+github_steps() {
+  REPO_JSON=$(gh_read "$REPO_API") ||
+    die "cannot read the GitHub repo of this folder. Run 'gh auth login' and check the git remote, or use --local."
+  REPO_URL=$(py_json 'd.get("html_url", "")' <<<"$REPO_JSON")
+  step 'repo options' step_repo_options
+  step labels step_labels
+  step ruleset step_ruleset
+  step 'security features' step_security
+}
+
+# Step 9: what only the owner can do, one step at a time (wizard style). In a terminal
+# each step waits for Enter; otherwise the list is printed.
+human_steps() {
+  local steps=() a i
+  if ((TEMPLATE)) && [[ -n $REPO_URL ]]; then
+    steps+=("Mark the repo as a template: open $REPO_URL/settings and tick \"Template repository\" under General.")
+  fi
+  local where='Settings > Secrets and variables > Actions of the GitHub repo'
+  [[ -z $REPO_URL ]] || where=$REPO_URL/settings/secrets/actions
+  steps+=("Optional: add the secret RELEASE_PLEASE_TOKEN (a fine-grained token with contents and pull requests write) at $where, so CI runs on release PRs. Without it, close and reopen each release PR before you merge it.")
+  for a in $SELECTED; do
+    case $a in
+      claude) steps+=('Claude Code: start claude in this folder and trust it, so the project settings and hooks load.') ;;
+      codex) steps+=('Codex: trust this project, then run /hooks and trust each hook. Codex trusts a hook by its hash, so do it again after a hook changes.') ;;
+      antigravity) steps+=("Antigravity: add this folder to trustedWorkspaces in your Antigravity settings, so .agents/hooks.json loads.") ;;
+    esac
+  done
+  ((${#steps[@]})) || return 0
+  log ''
+  log "Steps only you can do (${#steps[@]}):"
+  for i in "${!steps[@]}"; do
+    log "  [$((i + 1))/${#steps[@]}] ${steps[i]}"
+    if ((!DRY_RUN)) && [[ -t 0 && -t 1 ]]; then read -r -p '        Press Enter when done. ' _ || true; fi
+  done
+}
 
 summary() {
   local n
@@ -236,6 +447,17 @@ summary() {
   if ((DRY_RUN)); then log "dry run: $CHANGES change(s) planned, nothing written"
   else log "done: $CHANGES change(s)"; fi
   for n in "${NOTES[@]}"; do log "note: $n"; done
+  case $MODE in
+    strict) log 'GitHub: strict mode. The ruleset protects main.' ;;
+    honor)
+      log ''
+      log '*** GitHub: honor mode ***'
+      log '  GitHub refused the ruleset (HTTP 403): a private repo on GitHub Free has no'
+      log '  rulesets. CI still runs and reports, and the agent deny rules still forbid'
+      log '  merging and pushing to main. GitHub does not block a merge, so merging is your decision.'
+      log '  For strict mode, make the repo public or change the plan, then run bootstrap again.'
+      ;;
+  esac
   ((TEMPLATE)) && return 0
   if grep -qx '# solo-harness:check-app-placeholder' Makefile; then
     log ''
@@ -264,6 +486,7 @@ main() {
   if ((TEMPLATE)); then
     # The template repo itself: never delete, rename or rewrite a file.
     ((LOCAL)) || github_steps
+    human_steps
   else
     FIRST_RUN=1
     [[ -f .template-version ]] && FIRST_RUN=0
@@ -273,9 +496,12 @@ main() {
     ((LOCAL)) || github_steps
     step 'git hooks' step_git_hooks
     step 'Claude plugins' step_plugins
+    human_steps
     step 'template files' step_template_files
   fi
   summary
 }
 
-main "$@"
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi
