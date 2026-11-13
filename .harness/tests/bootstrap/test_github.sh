@@ -43,6 +43,7 @@ d["rules"].reverse()
 d["rules"][0]["parameters"]["do_not_enforce_on_create"] = False
 print(json.dumps(d))' "$HARNESS_ROOT/.github/ruleset.json")"
   gh_reply GET "$REPO_API/code-scanning/default-setup" '{"state": "configured"}'
+  gh_reply GET "$REPO_API/vulnerability-alerts" ''
 }
 
 # gh_bs DIR ANSWERS ARGS...: run bootstrap in DIR against the fake GitHub.
@@ -78,6 +79,7 @@ test_dry_run_prints_every_github_call_and_writes_nothing() {
     assert_contains "$OUT" "dry-run: gh api -X PATCH $REPO_API/code-scanning/default-setup -f state=configured"
     assert_contains "$OUT" "dry-run: gh api -X PATCH $REPO_API -f security_and_analysis[secret_scanning][status]=enabled"
     assert_contains "$OUT" 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
+    assert_contains "$OUT" "dry-run: gh api -X PUT $REPO_API/vulnerability-alerts"
   done
 }
 
@@ -127,6 +129,7 @@ test_private_repo_skips_codeql_and_push_protection() {
   fake_github private
   assert_status 0 gh_bs "$d" '' --template
   assert_not_contains "$(cat "$GH_STATE/calls")" code-scanning
+  assert_not_contains "$(cat "$GH_STATE/calls")" vulnerability-alerts
   [[ $(writes | grep -c "^PATCH $REPO_API\$") == 1 ]] || fail "one repo PATCH (options only): $(writes)"
   assert_contains "$OUT" 'need a public repo'
 }
@@ -186,6 +189,20 @@ test_refused_or_failed_writes_are_reported() {
   gh_reply PATCH "$REPO_API/code-scanning/default-setup" '' 422
   assert_status 0 gh_bs "$d" '' --template
   assert_contains "$OUT" 'GitHub refused CodeQL default setup'
+  fake_github public
+  gh_reply PUT "$REPO_API/vulnerability-alerts" '' 422
+  assert_status 0 gh_bs "$d" '' --template
+  assert_contains "$OUT" 'GitHub refused the dependency graph'
+}
+
+test_public_repo_gets_dependency_graph() {
+  # R18: step 6. The deps check (dependency-review) needs the dependency graph.
+  # Turning on Dependabot alerts turns it on.
+  local d; d=$(copy_repo)
+  fake_github public
+  assert_status 0 gh_bs "$d" '' --template
+  assert_contains "$(writes)" "PUT $REPO_API/vulnerability-alerts"
+  assert_contains "$OUT" 'changed: dependency graph and Dependabot alerts turned on'
 }
 
 test_honor_mode_ruleset_step_is_not_ok() {

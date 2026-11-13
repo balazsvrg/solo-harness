@@ -134,7 +134,7 @@ flowchart TD
 | `scripts/bootstrap --template` | For the template repo itself: GitHub steps only. Never deletes or rewrites a file. |
 | `scripts/bootstrap --add-agent <name>` | Add one agent (`claude`, `codex`, `copilot` or `antigravity`) to an existing project. |
 
-**GitHub steps** need `gh`, logged in, in a clone with a GitHub remote. They set the repo options (squash merge only, delete branches on merge, PR title as the squash commit title and the commit list as its message), create the labels `size/S`, `size/M`, `size/L`, `size-exception`, `agent` and `dependencies`, apply `.github/ruleset.json`, and on a public repo turn on CodeQL and secret-scanning push protection.
+**GitHub steps** need `gh`, logged in, in a clone with a GitHub remote. They set the repo options (squash merge only, delete branches on merge, PR title as the squash commit title and the commit list as its message), create the labels `size/S`, `size/M`, `size/L`, `size-exception`, `agent` and `dependencies`, apply `.github/ruleset.json`, and on a public repo turn on CodeQL, secret-scanning push protection and the dependency graph (with Dependabot alerts), which the `deps` check needs.
 
 **Template-only content.** The first project run deletes the paths in `.template-only` and the parts of this README between the `solo-harness:template-only` start and end markers. It also starts the project at version `0.1.0` with an empty `CHANGELOG.md`.
 
@@ -163,7 +163,7 @@ Other GitHub Free limits on private repos:
 | Feature | Public repo | Private repo on GitHub Free |
 |---|---|---|
 | Ruleset on `main` | Enforced | Not available (honor mode) |
-| `deps` check | `dependency-review-action` | `osv-scanner` (dependency review needs GitHub Advanced Security) |
+| `deps` check | `dependency-review-action` (bootstrap turns on the dependency graph it needs) | `osv-scanner` (dependency review needs GitHub Advanced Security) |
 | CodeQL code scanning | Turned on by bootstrap | Not available |
 | Secret-scanning push protection | Turned on by bootstrap | Not available; the `secrets` CI check and the `gitleaks` pre-commit hook still run |
 

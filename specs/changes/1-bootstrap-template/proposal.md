@@ -206,7 +206,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 3. Ask whether agents should stop adding AI attribution (`Co-Authored-By: Claude …` trailers, "Generated with" lines) to commits and PRs. Default: keep. On yes, turn attribution off in each selected agent's project config where the agent has such a setting (Claude Code: `.claude/settings.json`; the exact keys for all four agents are verified against their current docs during implementation, as in R5). Tell the owner which agents have no such setting. The template repo keeps attribution.
 4. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as the squash commit title and the list of commits as the squash commit message.
 5. Create labels: `size/S`, `size/M`, `size/L`, `size-exception`, `agent`, `dependencies`.
-6. Apply the ruleset; detect strict or honor mode (R15). On public repos, enable CodeQL and secret-scanning push protection.
+6. Apply the ruleset; detect strict or honor mode (R15). On public repos, enable CodeQL, secret-scanning push protection and the dependency graph (through Dependabot alerts; the `deps` check needs it).
 7. Run `git config core.hooksPath .githooks`; check that gitleaks is installed.
 8. Detect globally installed Claude plugins whose skills duplicate vendored ones (e.g. `mattpocock-skills`). Disable them in the new project's `.claude/settings.json` and tell the owner what it did. The template repo itself disables nothing.
 9. Guide human-only steps (e.g. secrets) in the `wizard` style.

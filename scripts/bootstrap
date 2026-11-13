@@ -473,8 +473,10 @@ step_ruleset() {
   esac
 }
 
-# Step 6, public repos only: CodeQL default setup and secret-scanning push protection.
-# Private repos need GitHub Advanced Security for both, so bootstrap skips them.
+# Step 6, public repos only: CodeQL default setup, secret-scanning push protection and
+# the dependency graph. Private repos need GitHub Advanced Security for the first two.
+# The dependency graph is for dependency-review-action, which the deps check runs on
+# public repos only (private repos use osv-scanner).
 step_security() {
   if [[ $(py_json 'd.get("visibility")' <<<"$REPO_JSON") != public ]]; then
     note 'CodeQL and secret-scanning push protection are skipped: they need a public repo or GitHub Advanced Security.'
@@ -494,6 +496,15 @@ step_security() {
       -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled' || rc=$?
     if ((rc == 0)); then changed 'secret scanning and push protection turned on'
     else note 'GitHub refused secret-scanning push protection. Turn it on in Settings > Code security.'; fi
+  fi
+  # GET answers 204 when Dependabot alerts are on and 404 when they are off. Turning
+  # them on also turns on the dependency graph.
+  ((DRY_RUN)) && printf 'dry-run: read: gh api %s\n' "$REPO_API/vulnerability-alerts" >&2
+  if ! gh_api "$REPO_API/vulnerability-alerts" >/dev/null 2>&1; then
+    rc=0
+    gh_write -X PUT "$REPO_API/vulnerability-alerts" || rc=$?
+    if ((rc == 0)); then changed 'dependency graph and Dependabot alerts turned on'
+    else note 'GitHub refused the dependency graph. Turn it on in Settings > Code security.'; fi
   fi
 }
 
