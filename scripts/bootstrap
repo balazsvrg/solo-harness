@@ -254,32 +254,56 @@ write_template_version() {
 # Step 10. The first run records the template repo and version and starts the project
 # at 0.1.0; a re-run keeps the project's own version and changelog. GitHub names the
 # template of a repo made with "Use this template"; otherwise TEMPLATE_REPO is used.
-step_template_files() {
-  local repo version line p paths=()
+# template_repo: print the owner/name of the template: the recorded one, else the
+# one GitHub names, else TEMPLATE_REPO.
+template_repo() {
+  local repo
   repo=$(state repo)
   if [[ -z $repo && -n $REPO_JSON ]]; then
     repo=$(py_json '(d.get("template_repository") or {}).get("full_name") or ""' <<<"$REPO_JSON") ||
       die 'cannot read the template repo from GitHub'
   fi
-  [[ -n $repo ]] || repo=$TEMPLATE_REPO
+  printf '%s' "${repo:-$TEMPLATE_REPO}"
+}
+
+# template_version: print the recorded template version, else the one in version.txt.
+template_version() {
+  local version
   version=$(state version)
   if [[ -z $version ]]; then
     [[ -f version.txt ]] || die 'version.txt is missing, so the template version is unknown'
     version=$(cat version.txt)
   fi
-  write_template_version "$repo" "$version" "${SELECTED// /,}"
-  if ((FIRST_RUN)); then
-    write_if_different version.txt 0.1.0 'version.txt: 0.1.0'
-    write_if_different .release-please-manifest.json $'{\n  ".": "0.1.0"\n}' '.release-please-manifest.json: 0.1.0'
-    write_if_different CHANGELOG.md "$CHANGELOG_HEADER" 'CHANGELOG.md: template entries removed'
-  fi
-  strip_template_readme
+  printf '%s' "$version"
+}
+
+# reset_release_files: start the project's own release history at 0.1.0.
+reset_release_files() {
+  write_if_different version.txt 0.1.0 'version.txt: 0.1.0'
+  write_if_different .release-please-manifest.json $'{\n  ".": "0.1.0"\n}' '.release-please-manifest.json: 0.1.0'
+  write_if_different CHANGELOG.md "$CHANGELOG_HEADER" 'CHANGELOG.md: template entries removed'
+}
+
+# remove_template_only: delete each glob listed in .template-only.
+remove_template_only() {
+  local line p paths=()
   [[ -f .template-only ]] || return 0
   mapfile -t paths < <(grep -v -e '^#' -e '^$' .template-only)
   for line in "${paths[@]}"; do
     # Unquoted on purpose: each line is a glob.
     for p in $line; do remove "${p%/}"; done
   done
+}
+
+step_template_files() {
+  local repo version
+  # Read both before reset_release_files rewrites version.txt.
+  repo=$(template_repo)
+  version=$(template_version)
+  write_template_version "$repo" "$version" "${SELECTED// /,}"
+  if ((FIRST_RUN)); then reset_release_files; fi
+  strip_template_readme
+  remove_template_only
 }
 
 # --- GitHub (R18 steps 4-6) ---------------------------------------------------
