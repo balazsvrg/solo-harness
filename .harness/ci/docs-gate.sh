@@ -86,7 +86,7 @@ is_living_spec() { [[ $1 =~ ^specs/[^/]+\.md$ ]]; }
 
 # --- AC-1-21: S size ---------------------------------------------------------
 if [[ $size == S ]]; then
-  total=$(counted_lines) specs=()
+  total=$(counted_lines "${LOCKFILE_GLOBS[@]}") specs=()
   for p in "${CHANGE_PATHS[@]}"; do
     if is_living_spec "$p"; then specs+=("$p"); fi
   done

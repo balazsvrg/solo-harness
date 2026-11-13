@@ -73,6 +73,10 @@ test_docs_gate_s_over_150_lines_fails() {
   assert_contains "$OUT" 'AC-1-21'
   assert_contains "$OUT" '151'
   PR_LABELS='bug,size-exception' assert_status 0 gate changes "$FIX/pr-body-s.md"
+  # Only lockfiles are skipped: archived change folders count for an S PR.
+  numstat 10 0 src/a.py 200 0 specs/changes/archive/2026-01-01-7-x/proposal.md
+  assert_status 1 gate changes "$FIX/pr-body-s.md"
+  assert_contains "$OUT" '210'
 }
 
 test_docs_gate_s_touching_living_spec_fails() {

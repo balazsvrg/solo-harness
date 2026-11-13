@@ -18,8 +18,10 @@ ORACLE_GLOBS=('**/__snapshots__/**' '**/*.snap' '.github/workflows/**' '.github/
 AGENTS_MD_MAX_LINES=60
 PR_SIZE_MAX_LINES=400
 S_SIZE_MAX_LINES=150
-# Files that pr-size and the S-size limit do not count.
-SIZE_EXCLUDE_GLOBS=('**/package-lock.json' '**/pnpm-lock.yaml' '**/yarn.lock' '**/*.lock' '**/go.sum' 'specs/changes/archive/**')
+# Lockfiles. The S-size limit in docs-gate does not count them.
+LOCKFILE_GLOBS=('**/package-lock.json' '**/pnpm-lock.yaml' '**/yarn.lock' '**/*.lock' '**/go.sum')
+# Files that pr-size does not count: lockfiles and archived change folders.
+SIZE_EXCLUDE_GLOBS=("${LOCKFILE_GLOBS[@]}" 'specs/changes/archive/**')
 
 # The template repo (owner/name) that bootstrap records in .template-version when
 # GitHub does not name one, as for a clone or a fork. scripts/bootstrap --add-agent

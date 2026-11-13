@@ -6,7 +6,7 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 load_changes "${1:-}"
 
-total=$(counted_lines)
+total=$(counted_lines "${SIZE_EXCLUDE_GLOBS[@]}")
 
 if ((total <= PR_SIZE_MAX_LINES)); then
   log "pr-size: $total changed lines (limit $PR_SIZE_MAX_LINES)"
