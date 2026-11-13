@@ -19,7 +19,7 @@ Propose a size. The owner confirms it.
 ## Where things live
 
 - Skills: `.agents/skills/<name>/SKILL.md`. Read a skill before you do the work it covers.
-- Specs: `specs/<capability>.md` (current behaviour) and `specs/changes/<issue>-<slug>/` (open changes).
+- Specs: `specs/<capability>.md` (current behaviour) and `specs/changes/<id>-<slug>/` (open changes).
 - Product and architecture: `docs/product.md`, `docs/architecture.md`, decisions in `docs/adr/`.
 - Terms: `GLOSSARY.md`. Use its words in code, specs and commits.
 - Harness internals: `.harness/`. Project code lives outside the harness folders.

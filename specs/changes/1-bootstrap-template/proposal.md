@@ -26,7 +26,7 @@ Token economy is a design constraint throughout: no MCP servers, a short `AGENTS
 
 - **Harness** — everything around the agent that steers it (guides) or checks it (sensors).
 - **Change** — one unit of work with a size S, M or L. M/L changes have a change folder.
-- **Change folder** — `specs/changes/<issue#>-<slug>/` holding `proposal.md`, `tasks.md` and, for L, `design.md`.
+- **Change folder** — `specs/changes/<id>-<slug>/` holding `proposal.md`, `tasks.md` and, for L, `design.md`.
 - **Living spec** — `specs/<capability>.md`; describes current behaviour; updated when a change is archived.
 - **Strict mode / honor mode** — whether GitHub can enforce the ruleset (public repo or paid plan) or not (private repo on GitHub Free).
 - **Overlay** — a later, stack-specific addition (e.g. TypeScript, Python) that fills `check-app`, Dependabot ecosystems and the release type.

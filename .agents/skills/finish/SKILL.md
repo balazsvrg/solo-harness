@@ -26,7 +26,7 @@ Apply each ADDED/MODIFIED/REMOVED delta in `proposal.md` to its living spec `spe
 
 A living spec states current behaviour in normal prose. It carries no change history, dates or "was/now" wording.
 
-Then move the folder with `git mv specs/changes/<id>-<slug> specs/changes/archive/YYYY-MM-DD-<id>-<slug>/`, using today's date.
+Then run `mkdir -p specs/changes/archive` (git does not track an empty folder) and move the folder with `git mv specs/changes/<id>-<slug> specs/changes/archive/YYYY-MM-DD-<id>-<slug>`, using today's date.
 
 Done when every requirement and AC in the proposal is in, changed in, or gone from its living spec, and `.harness/check/change-folders.sh` exits 0.
 
@@ -34,7 +34,7 @@ Done when every requirement and AC in the proposal is in, changed in, or gone fr
 
 Collect candidates from the proposal (including any decisions section), `design.md`, and `git diff main...HEAD`. A candidate is a decision that is hard to reverse, surprising without context, and the result of a real trade-off.
 
-Show the owner the full candidate list, one line each. For each candidate the owner confirms, call the Skill tool with `domain-modeling` and write `docs/adr/NNNN-<slug>.md` with the next free number. When a diagram helps the reader of an ADR, draw it as a Mermaid code block. Add new or sharpened terms to `GLOSSARY.md`.
+Show the owner the full candidate list, one line each. For each candidate the owner confirms, use the `domain-modeling` skill to write `docs/adr/NNNN-<slug>.md` with the next free number. When a diagram helps the reader of an ADR, draw it as a Mermaid code block. Add new or sharpened terms to `GLOSSARY.md`.
 
 Set the PR `ADR:` field to the new ADR files as a comma-separated list (`docs/adr/0001-a.md, docs/adr/0002-b.md`), or to `none – <reason>` when the owner confirmed none. On a Size L change, `none` is flagged by `docs-gate`; give a reason the reviewer will accept.
 

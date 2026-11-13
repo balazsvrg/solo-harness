@@ -57,7 +57,7 @@ flowchart TD
   pr --> merge
 ```
 
-**Where the files go.** An M or L change has a change folder `specs/changes/<issue>-<slug>/` with `proposal.md` (what and why, with criteria `AC-<issue>-<n>`), `tasks.md` (tickets) and, for L, `design.md` (how). `specs/<capability>.md` describes the current behaviour of each capability. `finish` applies the proposal to those living specs and moves the change folder to `specs/changes/archive/YYYY-MM-DD-<issue>-<slug>/`.
+**Where the files go.** An M or L change has a change folder `specs/changes/<id>-<slug>/` with `proposal.md` (what and why, with criteria `AC-<id>-<n>`), `tasks.md` (tickets) and, for L, `design.md` (how). `specs/<capability>.md` describes the current behaviour of each capability. `finish` applies the proposal to those living specs and moves the change folder to `specs/changes/archive/YYYY-MM-DD-<id>-<slug>/`.
 
 **Tests name their criterion.** The first line of each test is a comment such as `# AC-12-3`. `docs-gate` uses these comments to prove that every criterion of an M or L change has a test.
 
@@ -87,7 +87,7 @@ flowchart LR
 | Layer | Where | What it does |
 |---|---|---|
 | Guides | `AGENTS.md`, `.agents/skills/` | Tell the agent the process. Advisory only. |
-| Agent rules | `.claude/settings.json`, `.codex/rules/default.rules` | Deny pushes to `main`, force pushes, merges, `--no-verify`, reading `.env*` and `~/.ssh`, and edits to agent policy files and `.githooks/`. Ask before edits to workflows, the `Makefile` and `.harness/tools.lock`, and before package installs. |
+| Agent rules | `.claude/settings.json`, `.codex/rules/default.rules` | Deny pushes to `main`, force pushes, merges, `--no-verify`, reading `.env*` and `~/.ssh`, and edits to agent policy files and `.githooks/`. Ask before edits to workflows, the `Makefile`, `CODEOWNERS`, `.harness/tools.lock`, the agent hook scripts in `.harness/hooks/` and `.harness/check/deny-rules.sh`, and before package installs. |
 | Agent hooks | `.harness/hooks/` | `guard-bash.sh` blocks shell commands that the rules miss. `fmt.sh` formats each edited file. `stop-check.sh` runs `make check` when the agent stops with uncommitted changes. Codex, Copilot and Antigravity run them through `adapter.sh`. All are silent on success. |
 | Git hooks | `.githooks/` | `pre-commit` runs `make check` and `gitleaks`. `commit-msg` rejects messages that are not Conventional Commits. |
 | CI | `.github/workflows/ci.yml` | Required checks on every PR: `check`, `pr-title`, `zizmor`, `secrets`, `deps`, `pr-size`, `docs-gate`, `test-oracle`. `ste-lint` reports on the PR body and never blocks. |

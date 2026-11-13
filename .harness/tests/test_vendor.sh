@@ -165,7 +165,8 @@ test_finish_skill_steps() {
   # R3 step 2: apply deltas, archive with the folder name change-folders.sh accepts.
   assert_contains "$f" '## 2. Archive'
   assert_contains "$f" 'ADDED/MODIFIED/REMOVED'
-  assert_contains "$f" 'specs/changes/archive/YYYY-MM-DD-<id>-<slug>/'
+  assert_contains "$f" 'mkdir -p specs/changes/archive'
+  assert_contains "$f" 'specs/changes/archive/YYYY-MM-DD-<id>-<slug>'
   # R3 step 3: ADRs through domain-modeling, glossary, PR ADR field.
   assert_contains "$f" '## 3. Record decisions'
   assert_contains "$f" 'domain-modeling'

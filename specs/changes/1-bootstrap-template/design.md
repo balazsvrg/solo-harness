@@ -238,6 +238,8 @@ GitHub requires a base commit before a PR can exist, and a ruleset can require c
 5. `finish` runs as the last commit of the PR. All required checks must pass before the owner squash-merges.
 6. Mark the repo as a template in GitHub settings.
 
+**Ruleset target.** R14 says the ruleset targets `main`. `.github/ruleset.json` uses `~DEFAULT_BRANCH`. Both name the same branch here, because this repo and every project bootstrapped from it use `main` as the default branch. `~DEFAULT_BRANCH` also protects a project that renames its default branch, so the ruleset keeps it.
+
 **The release PR.** The ruleset also applies to the PR that release-please opens (R16). Two things make that PR mergeable:
 
 - `release-please-config.json` sets `pull-request-footer` to `Size: S`, `Change: none` and `ADR: none – …`, so `docs-gate` passes.
