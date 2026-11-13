@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Print, per vendored skill, the diff between the local copy and upstream HEAD.
+#
+# Usage:
+#   scripts/vendor-diff            every skill in .agents/skills/VENDORED.md
+#   scripts/vendor-diff SKILL...   only the named skills
+#
+# Lines starting with "-" are local, "+" are upstream HEAD. The script reads
+# VENDORED.md, downloads each upstream once into a temp directory outside the
+# repo, and deletes it on exit. It never writes to the repo.
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=../.harness/lib/common.sh
+source "$ROOT/.harness/lib/common.sh"
+
+# Upstream files that are not part of a vendored skill.
+EXCLUDES=(.git .github .claude-plugin .gitignore LICENSE README.md)
+
+err() { printf 'vendor-diff: %s\n' "$*" >&2; }
+
+# --- overridable I/O (tests replace this) ----------------------------------
+# fetch_upstream OWNER/REPO DIR: extract upstream HEAD into DIR, print its SHA.
+fetch_upstream() {
+  local sha
+  sha=$(git ls-remote "https://github.com/$1" HEAD | cut -f1)
+  [[ -n $sha ]] || { err "$1: cannot resolve HEAD"; return 1; }
+  curl -fsSL --retry 3 "https://codeload.github.com/$1/tar.gz/$sha" | tar -xz -C "$2" --strip-components=1
+  printf '%s\n' "$sha"
+}
+# ---------------------------------------------------------------------------
+
+main() {
+  local root=${VENDOR_ROOT:-$ROOT}
+  local table=$root/.agents/skills/VENDORED.md
+  [[ -f $table ]] || { err "missing $table"; return 2; }
+  case ${1:-} in -h | --help) sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; return 0 ;; esac
+
+  local -a names=() srcs=() paths=() shas=()
+  local skill src path sha _
+  while IFS='|' read -r skill src path sha _; do
+    path=${path%% *}   # "." (SKILL.md, …) -> "."
+    names+=("$skill") srcs+=("$src") paths+=("$path") shas+=("$sha")
+  done < <(vendored_rows "$table")
+
+  local want
+  for want in "$@"; do
+    printf '%s\n' "${names[@]}" | grep -qx -- "$want" || { err "unknown skill: $want"; return 2; }
+  done
+
+  local tmp
+  tmp=$(mktemp -d)
+  # shellcheck disable=SC2064 # expand now: tmp is local
+  trap "rm -rf '$tmp'" EXIT
+  local -A head=() dir=()
+  local i n=0 ex=() e
+  for e in "${EXCLUDES[@]}"; do ex+=(-x "$e"); done
+
+  for i in "${!names[@]}"; do
+    skill=${names[i]} src=${srcs[i]}
+    (( $# == 0 )) || printf '%s\n' "$@" | grep -qx -- "$skill" || continue
+    if [[ -z ${dir[$src]:-} ]]; then
+      n=$((n + 1)); dir[$src]=$tmp/$n; mkdir "${dir[$src]}"
+      head[$src]=$(fetch_upstream "$src" "${dir[$src]}") || { err "$src: download failed"; return 1; }
+    fi
+    local up=${dir[$src]}/${paths[i]} local_dir=$root/.agents/skills/$skill out
+    printf '== %s (%s %s: pinned %.12s, HEAD %.12s)\n' "$skill" "$src" "${paths[i]}" "${shas[i]}" "${head[$src]}"
+    if [[ ! -d $up ]]; then
+      printf '%s: removed upstream (%s not found)\n\n' "$skill" "${paths[i]}"; continue
+    fi
+    out=$(diff -ruN "${ex[@]}" "$local_dir" "$up" | sed -e "s#$local_dir#local/$skill#g" -e "s#$up#upstream/$skill#g") || true
+    if [[ -z $out ]]; then printf '%s: no changes\n\n' "$skill"; else printf '%s\n\n' "$out"; fi
+  done
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  set -euo pipefail
+  main "$@"
+fi

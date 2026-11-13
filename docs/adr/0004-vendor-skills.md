@@ -1,0 +1,3 @@
+# Vendor skills at pinned commits instead of plugins
+
+Agent skills are copied into `.agents/skills/` at a pinned upstream commit and recorded in `VENDORED.md`. They are not installed as plugins. A plugin can change under the project at any time, only Claude Code reads it, and the gates cannot see it. Vendored skills are reviewed in a PR, every agent reads them from one directory, and we can patch them (for example to write to `specs/` instead of a tracker). The cost is manual updates: `make vendor-diff` shows the upstream drift, and a person decides what to take. Bootstrap disables global plugins that duplicate a vendored skill, so an agent does not see two versions of the same skill.

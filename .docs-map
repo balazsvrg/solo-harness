@@ -1,0 +1,8 @@
+# Documentation map, read by the docs-gate CI job (R13, AC-1-25).
+# One rule per line: <glob> -> <doc path>
+# A PR that changes a file matching <glob> must also change <doc path>,
+# or say why not with a PR-body line "Docs: unchanged – <reason>".
+# '**/' matches zero or more folders; '*' and '?' stay inside one folder.
+#
+# Example:
+#   src/api/** -> docs/api.md

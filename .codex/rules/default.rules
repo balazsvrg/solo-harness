@@ -1,0 +1,53 @@
+# R6 deny and ask rules for Codex CLI. Codex loads this file only in a trusted project.
+# A prefix rule matches the start of a command. .harness/hooks/adapter.sh catches the other forms.
+# Test a rule: codex execpolicy check --pretty --rules .codex/rules/default.rules -- git push -f
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "--force-with-lease", "--force-if-includes", "-f"]],
+    decision = "forbidden",
+    justification = "R6: no force push. The owner must run this.",
+    match = ["git push --force", "git push -f origin x"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", ["main", "HEAD:main"]],
+    decision = "forbidden",
+    justification = "R6: no push to main. Push a feature branch and open a PR.",
+    match = ["git push origin main"],
+    not_match = ["git push origin feature"],
+)
+
+prefix_rule(
+    pattern = ["git", "commit", ["--no-verify", "-n"]],
+    decision = "forbidden",
+    justification = "R6: do not skip the git hooks.",
+    match = ["git commit --no-verify -m x"],
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "R6: the owner merges.",
+    match = ["gh pr merge 1"],
+)
+
+prefix_rule(
+    pattern = ["gh", "release", "create"],
+    decision = "forbidden",
+    justification = "R6: release-please makes releases.",
+    match = ["gh release create v1"],
+)
+
+prefix_rule(
+    pattern = [["npm", "pnpm", "yarn"], ["install", "i", "add", "ci"]],
+    decision = "prompt",
+    justification = "R6: ask before a package install.",
+    match = ["npm install x"],
+)
+
+prefix_rule(
+    pattern = [["pip", "pip3", "uv", "cargo", "go"], ["install", "add", "get", "sync"]],
+    decision = "prompt",
+    justification = "R6: ask before a package install.",
+    match = ["pip install x", "go get x"],
+)

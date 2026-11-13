@@ -1,0 +1,27 @@
+{
+  "description": "R7 hooks for Codex CLI. Each hook runs .harness/hooks/adapter.sh. Trust them once with /hooks.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.harness/hooks/adapter.sh\" codex pre" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.harness/hooks/adapter.sh\" codex post" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$(git rev-parse --show-toplevel)/.harness/hooks/adapter.sh\" codex stop", "timeout": 300 }
+        ]
+      }
+    ]
+  }
+}

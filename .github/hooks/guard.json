@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "./.harness/hooks/adapter.sh copilot pre",
+        "cwd": ".",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}

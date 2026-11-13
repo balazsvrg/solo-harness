@@ -1,0 +1,5 @@
+interface:
+  display_name: "Finish"
+  short_description: "Close a change inside its PR"
+policy:
+  allow_implicit_invocation: false

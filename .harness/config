@@ -1,0 +1,29 @@
+# shellcheck shell=bash
+# solo-harness settings. Every harness script sources this file.
+# Overlays and projects may edit the values; keep the variable names.
+
+# Paths that belong to the harness. Any other file is app source.
+HARNESS_DIRS=(.agents .claude .codex .github .githooks .harness .scratch docs specs scripts)
+# Root-level files that belong to the harness (globs, matched at the repo root only).
+HARNESS_ROOT_FILES=('*.md' 'Makefile' 'LICENSE' 'version.txt' 'release-please-config.json' '.*')
+
+# Files that count as tests. Read by docs-gate, test-oracle and check-app.
+TEST_GLOBS=('**/test_*.*' '**/*_test.*' '**/*.test.*' '**/*.spec.*' 'tests/**' 'test/**' '__tests__/**' '.harness/tests/**')
+# Files that, like tests, decide whether a change is correct. test-oracle requires a specs/
+# change when a PR touches TEST_GLOBS or these: snapshots, workflows, CI config, the gate
+# settings in this file and their shared code, pinned tools.
+ORACLE_GLOBS=('**/__snapshots__/**' '**/*.snap' '.github/workflows/**' '.github/actions/**' '.harness/ci/**' '.harness/config' '.harness/lib/**' '.harness/tools.lock')
+
+# Size limits.
+AGENTS_MD_MAX_LINES=60
+PR_SIZE_MAX_LINES=400
+S_SIZE_MAX_LINES=150
+# Lockfiles. The S-size limit in docs-gate does not count them.
+LOCKFILE_GLOBS=('**/package-lock.json' '**/pnpm-lock.yaml' '**/yarn.lock' '**/*.lock' '**/go.sum')
+# Files that pr-size does not count: lockfiles and archived change folders.
+SIZE_EXCLUDE_GLOBS=("${LOCKFILE_GLOBS[@]}" 'specs/changes/archive/**')
+
+# The template repo (owner/name) that bootstrap records in .template-version when
+# GitHub does not name one, as for a clone or a fork. scripts/bootstrap --add-agent
+# downloads agent files from it. A fork that serves as a template changes this.
+TEMPLATE_REPO=balazsvrg/solo-harness

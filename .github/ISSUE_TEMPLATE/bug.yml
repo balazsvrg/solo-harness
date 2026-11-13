@@ -1,0 +1,26 @@
+name: Bug
+description: Report behaviour that is not correct.
+body:
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to occur?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What occurred? Include error messages and output.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The minimum steps that cause the bug.
+      value: |
+        1.
+    validations:
+      required: true

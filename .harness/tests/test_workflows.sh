@@ -1,0 +1,132 @@
+# shellcheck shell=bash
+# Tests for .github/workflows (R12, R22). The files are read with the awk helpers in
+# lib/assert.sh, so they keep the layout actionlint accepts: two-space indent, one job
+# per `  name:` line.
+
+WF=$HARNESS_ROOT/.github/workflows
+CI_JOBS='check deps docs-gate pr-size pr-title secrets ste-lint test-oracle zizmor'
+
+workflows() { local f; for f in "$WF"/*.yml; do [[ -e $f ]] && printf '%s\n' "$f"; done; }
+
+test_workflows_pin_actions_to_full_sha() {
+  # R12: every remote action is pinned to a 40-character commit SHA with the tag in a comment.
+  local f line n=0
+  while IFS= read -r f; do
+    while IFS= read -r line; do
+      n=$((n + 1))
+      [[ $line =~ uses:\ *\./ ]] && continue
+      [[ $line =~ uses:\ *[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}\ +#\ *v[0-9] ]] ||
+        fail "${f##*/}: not pinned to a SHA with a version comment: $line"
+    done < <(grep -E '^\s*-?\s*uses:' "$f")
+  done < <(workflows)
+  ((n > 0)) || fail 'no uses: lines found'
+}
+
+test_workflows_least_privilege_permissions() {
+  # R12: an empty workflow-level permissions block, and a permissions block on every job.
+  local f j
+  while IFS= read -r f; do
+    grep -qx 'permissions: {}' "$f" || fail "${f##*/}: workflow-level permissions is not {}"
+    while IFS= read -r j; do
+      job_block "$f" "$j" | grep -qE '^    permissions:' || fail "${f##*/}: job $j has no permissions"
+      job_block "$f" "$j" | grep -qE 'write-all|read-all' && fail "${f##*/}: job $j uses a broad permission"
+    done < <(job_names "$f")
+  done < <(workflows)
+  return 0
+}
+
+test_workflows_no_pull_request_target() {
+  # R12
+  local f
+  while IFS= read -r f; do
+    grep -q 'pull_request_target' "$f" && fail "${f##*/} uses pull_request_target"
+  done < <(workflows)
+  return 0
+}
+
+test_workflows_checkout_without_credentials() {
+  # R12: checkout does not leave the token in .git/config.
+  local f n
+  while IFS= read -r f; do
+    n=$(grep -c 'uses: *actions/checkout@' "$f" || true)
+    assert_eq "$(grep -c 'persist-credentials: false' "$f" || true)" "$n" "${f##*/}: persist-credentials: false per checkout"
+  done < <(workflows)
+}
+
+test_ci_has_r12_jobs() {
+  # R12: the job ids are the required check names that T9 puts in the ruleset.
+  assert_eq "$(job_names "$WF/ci.yml" | sort | xargs)" "$CI_JOBS"
+}
+
+test_ci_check_job_runs_make_check() {
+  # AC-1-17
+  job_block "$WF/ci.yml" check | grep -qE '^ +(- )?run: make check$' || fail 'job check does not run make check'
+  job_block "$WF/ci.yml" check | grep -q 'check-harness' && fail 'job check must not branch to check-harness'
+  return 0
+}
+
+test_ci_ste_lint_is_not_blocking() {
+  # AC-1-11
+  job_block "$WF/ci.yml" ste-lint | grep -qE '^    continue-on-error: true$' || fail 'ste-lint must set continue-on-error: true'
+  job_block "$WF/ci.yml" ste-lint | grep -q 'ste-lint.py' || fail 'ste-lint does not run ste-lint.py'
+}
+
+test_ci_gate_jobs_call_harness_scripts() {
+  # R12: pr-size, test-oracle and docs-gate run the tested scripts, not inline logic.
+  job_block "$WF/ci.yml" docs-gate | grep -q '.harness/ci/docs-gate.sh' || fail 'docs-gate job does not call .harness/ci/docs-gate.sh'
+  job_block "$WF/ci.yml" pr-size | grep -q '.harness/ci/pr-size.sh' || fail 'pr-size job does not call .harness/ci/pr-size.sh'
+  job_block "$WF/ci.yml" test-oracle | grep -q '.harness/ci/test-oracle.sh' || fail 'test-oracle job does not call .harness/ci/test-oracle.sh'
+}
+
+test_workflows_pr_body_only_through_env() {
+  # R12: the PR body goes to a step only through env:, never into a run: script (script injection).
+  local f line
+  while IFS= read -r f; do
+    while IFS= read -r line; do
+      [[ $line =~ ^\ +PR_BODY:\ \$\{\{\ github\.event\.pull_request\.body\ \}\}$ ]] ||
+        fail "${f##*/}: PR body outside an env: PR_BODY line: $line"
+    done < <(grep -E 'pull_request\.body' "$f")
+  done < <(workflows)
+  job_block "$WF/ci.yml" docs-gate | grep -q 'PR_BODY:' || fail 'docs-gate job does not read PR_BODY'
+}
+
+test_ci_deps_switches_on_visibility() {
+  # R12 deps: dependency-review on public repos, osv-scanner on private repos.
+  local b; b=$(job_block "$WF/ci.yml" deps)
+  assert_contains "$b" 'actions/dependency-review-action@'
+  assert_contains "$b" 'osv-scanner'
+  assert_contains "$b" 'github.event.repository.private'
+}
+
+test_tools_outdated_is_report_only() {
+  # AC-1-39
+  local f=$WF/tools-outdated.yml perms
+  assert_file "$f"
+  assert_eq "$(top_block "$f" on | awk '/^  [a-z_]+:/ {sub(/:.*/, ""); sub(/^ +/, ""); print}' | sort | xargs)" 'schedule workflow_dispatch'
+  perms=$(grep -E '^ +(actions|attestations|checks|contents|deployments|discussions|id-token|issues|packages|pages|pull-requests|security-events|statuses): ' "$f" | sed 's/^ *//' | sort -u | xargs)
+  assert_eq "$perms" 'contents: read issues: write'
+  grep -qE 'git push|gh pr |create-pull-request|git commit' "$f" && fail 'tools-outdated must not push or open a PR'
+  return 0
+}
+
+test_copilot_setup_steps() {
+  # R7: Copilot installs the pinned tools and turns on the git hooks before it works.
+  has_agent copilot || return 0
+  local f=$WF/copilot-setup-steps.yml
+  assert_file "$f"
+  assert_eq "$(job_names "$f" | xargs)" copilot-setup-steps 'the job id Copilot looks for'
+  assert_contains "$(job_block "$f" copilot-setup-steps)" 'make tools'
+  assert_contains "$(job_block "$f" copilot-setup-steps)" 'git config core.hooksPath .githooks'
+}
+
+# shellcheck disable=SC2016 # literal workflow text
+test_gates_get_pr_author_and_diff() {
+  # R17: docs-gate and test-oracle get the PR author and the diff, to pass Dependabot pin updates.
+  local j b
+  for j in docs-gate test-oracle; do
+    b=$(job_block "$WF/ci.yml" "$j")
+    assert_contains "$b" 'PR_AUTHOR: ${{ github.event.pull_request.user.login }}'
+    assert_contains "$b" 'git diff -U0 --no-renames HEAD^1 HEAD > "$PR_DIFF"'
+    assert_contains "$b" 'PR_DIFF: ${{ runner.temp }}/pr.diff'
+  done
+}

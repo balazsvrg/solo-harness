@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Scan the staged changes for secrets and run `make check` (R11, AC-1-18).
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+# Scan first: with `commit -a` or `commit <path>`, only GIT_INDEX_FILE holds the commit content.
+if [[ -x .harness/bin/gitleaks ]]; then
+  .harness/bin/gitleaks git --pre-commit --staged --redact --no-banner --log-level warn
+elif command -v gitleaks >/dev/null; then
+  gitleaks git --pre-commit --staged --redact --no-banner --log-level warn
+else
+  echo 'pre-commit: warning: gitleaks is not installed, so the secret scan is skipped. Run "make tools".' >&2
+fi
+
+# Git exports GIT_INDEX_FILE (and in some cases GIT_DIR) to the hook. Remove them, so the
+# git commands in `make check` (the tests make commits in temp repos) find their own repo.
+# shellcheck disable=SC2046 # one variable name per word
+unset $(git rev-parse --local-env-vars)
+
+make check

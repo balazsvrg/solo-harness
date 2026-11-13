@@ -1,0 +1,4 @@
+# Vendored skill scripts stay byte-identical to upstream (see VENDORED.md).
+# wizard/template.sh is a template: its helper functions are unused until a
+# wizard is generated (SC2329), and `$DIM$e[...` is a literal, not an array (SC1087).
+disable=SC1087,SC2329

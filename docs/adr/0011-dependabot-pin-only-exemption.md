@@ -1,0 +1,3 @@
+# Dependabot pin-only PRs skip `docs-gate` and `test-oracle`
+
+Dependabot PRs have no `Size`/`Change`/`ADR` fields and change workflows without a `specs/` change, so `docs-gate` and `test-oracle` would block every one of them. With an empty bypass list, nobody could merge them. So both gates pass a PR when the author is `dependabot[bot]`, every changed file is in `.github/workflows/`, and the diff changes only the ref of existing `uses:` lines to a full commit SHA. Any other change, including a commit that a person adds to the Dependabot branch, runs the full gate. The exemption is narrow because a broad one ("trust the bot") would let any change through under the Dependabot name.

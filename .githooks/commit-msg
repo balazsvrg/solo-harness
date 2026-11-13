@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Reject a commit message whose header is not a Conventional Commit (R11, AC-1-19).
+# The types are the defaults of the pr-title job (amannn/action-semantic-pull-request).
+set -euo pipefail
+
+types='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+header=$(grep -v '^#' "$1" | grep -m1 -v '^[[:space:]]*$' || true)
+
+# Messages that git writes itself, and autosquash markers, pass.
+git_forms="Merge (branch|tag|commit|remote-tracking branch) '|Merge pull request |Revert \"|(fixup|squash|amend)! "
+[[ $header =~ ^($git_forms) ]] && exit 0
+[[ $header =~ ^($types)(\([^()[:space:]][^()]*\))?!?:\ [^[:space:]] ]] && exit 0
+
+cat >&2 <<EOF
+commit-msg: the header is not a Conventional Commits header.
+  got:  ${header:-<empty>}
+  want: <type>[(scope)][!]: <subject>
+  type: ${types//|/, }
+EOF
+exit 1

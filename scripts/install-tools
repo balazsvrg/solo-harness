@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# Install the pinned tools from .harness/tools.lock into .harness/bin.
+#
+# Usage:
+#   scripts/install-tools                 install or refresh tools for this platform
+#   scripts/install-tools --update NAME   pin the latest release of NAME (or "all")
+#   scripts/install-tools --outdated      list pinned tools that have a newer release
+#
+# Every download is checked against the SHA-256 in tools.lock. On a mismatch the
+# file is deleted and the script fails. --update reads releases with `gh api` and
+# rewrites only the lines of the named tool; commit the result through a PR.
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+TOOLS_LOCK=${TOOLS_LOCK:-$ROOT/.harness/tools.lock}
+TOOLS_BIN=${TOOLS_BIN:-$ROOT/.harness/bin}
+PLATFORMS=(linux-amd64 linux-arm64 darwin-amd64 darwin-arm64)
+
+declare -A REPO=(
+  [shellcheck]=koalaman/shellcheck
+  [actionlint]=rhysd/actionlint
+  [gitleaks]=gitleaks/gitleaks
+  [osv-scanner]=google/osv-scanner
+)
+
+err() { printf 'install-tools: %s\n' "$*" >&2; }
+
+# --- overridable I/O (tests replace these) ---------------------------------
+fetch_latest_version() { gh api "repos/$1/releases/latest" --jq .tag_name; }
+fetch_url() { curl -fsSL --retry 3 -o "$2" "$1"; }
+# ---------------------------------------------------------------------------
+
+sha256() {
+  if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -f1
+  else shasum -a 256 "$1" | cut -d' ' -f1; fi
+}
+
+platform() {
+  local os arch
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  case $(uname -m) in
+    x86_64 | amd64) arch=amd64 ;;
+    aarch64 | arm64) arch=arm64 ;;
+    *) arch=$(uname -m) ;;
+  esac
+  printf '%s-%s\n' "$os" "$arch"
+}
+
+# asset_url TOOL VERSION PLATFORM: the release download URL.
+asset_url() {
+  local t=$1 v=$2 os=${3%-*} arch=${3#*-} base
+  base="https://github.com/${REPO[$t]}/releases/download/v$v"
+  case $t in
+    shellcheck)
+      local a=x86_64; [[ $arch == arm64 ]] && a=aarch64
+      printf '%s/shellcheck-v%s.%s.%s.tar.xz\n' "$base" "$v" "$os" "$a" ;;
+    actionlint) printf '%s/actionlint_%s_%s_%s.tar.gz\n' "$base" "$v" "$os" "$arch" ;;
+    gitleaks)
+      local a=x64; [[ $arch == arm64 ]] && a=arm64
+      printf '%s/gitleaks_%s_%s_%s.tar.gz\n' "$base" "$v" "$os" "$a" ;;
+    osv-scanner) printf '%s/osv-scanner_%s_%s\n' "$base" "$os" "$arch" ;;
+    *) err "unknown tool: $t"; return 1 ;;
+  esac
+}
+
+# install_one NAME VERSION URL SHA
+install_one() {
+  local name=$1 version=$2 url=$3 want=$4 dl got
+  local marker="$TOOLS_BIN/.$name.sha256"
+  if [[ -x $TOOLS_BIN/$name && -f $marker && $(<"$marker") == "$want" ]]; then return 0; fi
+  mkdir -p "$TOOLS_BIN/.dl"
+  dl="$TOOLS_BIN/.dl/${url##*/}"
+  fetch_url "$url" "$dl" || { rm -f "$dl"; err "$name: download failed: $url"; return 1; }
+  got=$(sha256 "$dl")
+  if [[ $got != "$want" ]]; then
+    rm -f "$dl"
+    err "$name $version: sha256 mismatch (want $want, got $got); file deleted"
+    return 1
+  fi
+  local x="$TOOLS_BIN/.dl/x"
+  rm -rf "$x" && mkdir -p "$x"
+  case $dl in
+    *.tar.gz | *.tgz) tar -xzf "$dl" -C "$x" ;;
+    *.tar.xz) tar -xJf "$dl" -C "$x" ;;
+    *) cp "$dl" "$x/$name" ;;
+  esac
+  local bin; bin=$(find "$x" -type f -name "$name" | head -n1)
+  [[ -n $bin ]] || { err "$name: binary not found in ${url##*/}"; return 1; }
+  mv -f "$bin" "$TOOLS_BIN/$name"
+  chmod +x "$TOOLS_BIN/$name"
+  printf '%s\n' "$want" > "$marker"
+  rm -rf "$TOOLS_BIN/.dl"
+}
+
+install_all() {
+  local plat name version p url hash found=0 rc=0
+  plat=$(platform)
+  [[ -f $TOOLS_LOCK ]] || { err "missing $TOOLS_LOCK"; return 1; }
+  while read -r name version p url hash; do
+    [[ -z $name || $name == \#* || $p != "$plat" ]] && continue
+    found=1
+    install_one "$name" "$version" "$url" "$hash" || rc=1
+  done < "$TOOLS_LOCK"
+  ((found)) || { err "no tools pinned for $plat in $TOOLS_LOCK"; return 1; }
+  return $rc
+}
+
+# update_tool NAME: pin the latest release of NAME for every platform.
+update_tool() {
+  local t=$1 tag version p url tmp lines=''
+  [[ -n ${REPO[$t]:-} ]] || { err "unknown tool: $t"; return 1; }
+  tag=$(fetch_latest_version "${REPO[$t]}") || { err "$t: cannot read latest release"; return 1; }
+  version=${tag#v}
+  tmp=$(mktemp)
+  for p in "${PLATFORMS[@]}"; do
+    url=$(asset_url "$t" "$version" "$p")
+    fetch_url "$url" "$tmp" || { rm -f "$tmp"; err "$t: download failed: $url"; return 1; }
+    lines+="$t $version $p $url $(sha256 "$tmp")"$'\n'
+  done
+  rm -f "$tmp"
+  [[ -f $TOOLS_LOCK ]] || : > "$TOOLS_LOCK"
+  # Replace the tool's block in place, or append it when it is new.
+  NEW=$lines awk -v t="$t" '
+    $1 == t { if (!done) { printf "%s", ENVIRON["NEW"]; done = 1 } next }
+    { print }
+    END { if (!done) printf "%s", ENVIRON["NEW"] }' "$TOOLS_LOCK" > "$TOOLS_LOCK.new"
+  mv "$TOOLS_LOCK.new" "$TOOLS_LOCK"
+  printf '%s pinned at %s\n' "$t" "$version"
+}
+
+# list_outdated: print "- NAME: pinned X, latest Y" for each stale tool. No output = all current.
+list_outdated() {
+  local name version rest tag seen=' ' rc=0
+  [[ -f $TOOLS_LOCK ]] || { err "missing $TOOLS_LOCK"; return 1; }
+  while read -r name version rest; do
+    [[ -z $name || $name == \#* || $seen == *" $name "* ]] && continue
+    seen+="$name "
+    [[ -n ${REPO[$name]:-} ]] || { err "unknown tool: $name"; rc=1; continue; }
+    tag=$(fetch_latest_version "${REPO[$name]}") || { err "$name: cannot read latest release"; rc=1; continue; }
+    # Stale only if the latest release sorts after the pin as a version, not as text.
+    [[ ${tag#v} != "$version" && $(printf '%s\n' "$version" "${tag#v}" | sort -V | tail -n1) == "${tag#v}" ]] &&
+      printf -- '- %s: pinned %s, latest %s\n' "$name" "$version" "${tag#v}"
+  done < "$TOOLS_LOCK"
+  return $rc
+}
+
+main() {
+  case ${1:-} in
+    '') install_all ;;
+    --update)
+      [[ -n ${2:-} ]] || { err 'usage: install-tools --update <name|all>'; return 2; }
+      if [[ $2 == all ]]; then
+        local t; for t in "${!REPO[@]}"; do update_tool "$t" || return 1; done
+      else
+        update_tool "$2"
+      fi ;;
+    --outdated) list_outdated ;;
+    -h | --help) sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' ;;
+    *) err "unknown argument: $1"; return 2 ;;
+  esac
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  set -euo pipefail
+  main "$@"
+fi
