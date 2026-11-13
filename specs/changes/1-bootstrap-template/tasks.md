@@ -207,10 +207,10 @@ flowchart LR
 
 **Blocked by:** T11, T14.
 
-- [ ] Create public repo `solo-harness`; push the spec-only initial commit to `main`
-- [ ] Create issue #1; push branch `1-bootstrap-template`
-- [ ] Run bootstrap in template mode (ruleset, labels, options, CodeQL, push protection)
-- [ ] Open the PR with `size-exception`; all required checks run
+- [x] Create public repo `solo-harness`; push the spec-only initial commit to `main`
+- [x] Create issue #1; push branch `1-bootstrap-template`
+- [x] Run bootstrap in template mode (ruleset, labels, options, CodeQL, push protection)
+- [x] Open the PR with `size-exception`; all required checks run
 
 ## T13: Finish
 
