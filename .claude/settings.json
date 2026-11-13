@@ -55,8 +55,7 @@
       "Bash(uv sync*)",
       "Bash(python* -m pip install *)",
       "Bash(yarn global add *)",
-      "Bash(npm ci*)",
-      "Bash(pnpm i *)"
+      "Bash(npm ci*)"
     ],
     "allow": [
       "Bash(make)",
