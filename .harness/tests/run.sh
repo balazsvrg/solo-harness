@@ -15,6 +15,8 @@ pass=0 failed=()
 # Not exported to the tests: a nested run must pick its own files.
 files=${TEST_FILES:-test_*.sh}
 unset TEST_FILES
+# The gate scripts read these from the CI job. A test sets the ones it needs.
+unset GITHUB_STEP_SUMMARY PR_LABELS PR_AUTHOR PR_DIFF PR_BODY
 
 for file in "$TESTS_DIR"/$files; do
   [[ -e $file ]] || continue
