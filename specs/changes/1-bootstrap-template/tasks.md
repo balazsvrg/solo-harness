@@ -151,7 +151,7 @@ flowchart LR
 
 - [x] `.github/ruleset.json` (R14; check names match T7/T8 job names; empty bypass list)
 - [x] `release-please-config.json`, `.release-please-manifest.json`, `version.txt` (`0.1.0`), `CHANGELOG.md`, release-please workflow
-- [x] `.github/dependabot.yml` (github-actions, weekly, 3-day cooldown, grouped)
+- [x] `.github/dependabot.yml` (github-actions, weekly, 7-day cooldown, grouped)
 - [x] Test: every required check name in the ruleset exists as a job name in the workflows
 
 ## T10a: Bootstrap, local project mode

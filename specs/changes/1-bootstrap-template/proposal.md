@@ -195,7 +195,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 
 **R16. release-please** with `release-type: simple` (`version.txt`, `CHANGELOG.md`), starting at `0.1.0`. The owner merges the release PR. Overlays switch the release type.
 
-**R17. Dependabot** for the `github-actions` ecosystem only, weekly, 3-day cooldown, minor/patch grouped. Overlays add ecosystems.
+**R17. Dependabot** for the `github-actions` ecosystem only, weekly, 7-day cooldown (zizmor flags less than 7 days), minor/patch grouped. Overlays add ecosystems.
 
 ### Capability: bootstrap
 

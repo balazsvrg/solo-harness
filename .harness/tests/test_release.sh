@@ -70,13 +70,13 @@ test_release_please_workflow() {
 }
 
 test_dependabot_github_actions_weekly() {
-  # R17: github-actions only, weekly, 3-day cooldown, minor and patch updates in one group,
+  # R17: github-actions only, weekly, 7-day cooldown, minor and patch updates in one group,
   # Conventional Commit titles so pr-title passes.
   local f=$HARNESS_ROOT/.github/dependabot.yml
   assert_file "$f"
   assert_eq "$(grep -E '^ *- package-ecosystem:' "$f" | sed 's/.*: *//' | xargs)" github-actions 'ecosystems'
   grep -qE '^ +interval: weekly$' "$f" || fail 'interval is not weekly'
-  grep -qE '^ +default-days: 3$' "$f" || fail 'cooldown is not 3 days'
+  grep -qE '^ +default-days: 7$' "$f" || fail 'cooldown is not 7 days'
   grep -qE '^ +update-types: \[minor, patch\]$' "$f" || fail 'minor and patch are not grouped'
   grep -qE '^ +prefix: chore$' "$f" || fail 'commit prefix is not chore'
   grep -qE '^ +include: scope$' "$f" || fail 'commit message does not include the deps scope'
