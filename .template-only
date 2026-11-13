@@ -2,3 +2,4 @@
 # One glob per line, relative to the repo root. Comments and blank lines are ignored.
 specs/changes/archive/*-bootstrap-template/
 .template-only
+.harness/tests/test_readme.sh

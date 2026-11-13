@@ -43,6 +43,14 @@ test_agents_md_content() {
   assert_status 1 check agents-md "$r"
 }
 
+test_agents_md_mermaid_rule() {
+  # AC-1-32 (AGENTS.md part)
+  local r; r=$(new_repo)
+  grep -v 'Mermaid' "$HARNESS_ROOT/AGENTS.md" > "$r/AGENTS.md"
+  assert_status 1 check agents-md "$r"
+  assert_contains "$OUT" 'Mermaid'
+}
+
 test_model_advice_and_no_pin() {
   # AC-1-4
   local r; r=$(new_repo)

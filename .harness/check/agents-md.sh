@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AC-1-2, AC-1-3, AC-1-4, AC-1-41: AGENTS.md length and content; no agent config pins a model.
+# AC-1-2, AC-1-3, AC-1-4, AC-1-32, AC-1-41: AGENTS.md length and content; no agent config pins a model.
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 root=${1:-$(repo_root)}
@@ -12,7 +12,7 @@ bad() { err "$*"; rc=1; }
 lines=$(wc -l < "$f")
 (( lines <= AGENTS_MD_MAX_LINES )) || bad "AGENTS.md: $lines lines, limit is $AGENTS_MD_MAX_LINES"
 
-for needle in 'make check' 'S/M/L' '.agents/skills' 'strongest model' 'once at the end of every ticket' 'Never skip it' 'unless the owner asks'; do
+for needle in 'make check' 'S/M/L' '.agents/skills' 'strongest model' 'once at the end of every ticket' 'Never skip it' 'unless the owner asks' 'Mermaid'; do
   grep -qF -- "$needle" "$f" || bad "AGENTS.md: must mention '$needle'"
 done
 

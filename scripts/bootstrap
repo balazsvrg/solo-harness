@@ -117,13 +117,40 @@ write_if_different() {
   changed "$3"
 }
 
+# retitle FILE PLACEHOLDER NAME: replace the first line of FILE with `# NAME` when it is
+# the template's PLACEHOLDER title, so a re-run keeps the owner's text.
+retitle() {
+  [[ $(head -1 "$1" 2>/dev/null) == "$2" ]] || return 0
+  write_file "$1" "$(printf '# %s\n' "$3"; tail -n +2 "$1")"
+  changed "$1: title '$3'"
+}
+
 step_name() {
   local name
   name=$(ask name "$(basename "$ROOT")" 'Project name')
-  # Only the template's placeholder title is replaced, so a re-run keeps the owner's text.
-  [[ $(head -1 docs/product.md 2>/dev/null) == '# Product' ]] || return 0
-  write_file docs/product.md "$(printf '# %s\n' "$name"; tail -n +2 docs/product.md)"
-  changed "docs/product.md: title '$name'"
+  retitle docs/product.md '# Product' "$name"
+  retitle README.md '# solo-harness' "$name"
+}
+
+README_START='<!-- solo-harness:template-only:start -->'
+README_END='<!-- solo-harness:template-only:end -->'
+
+# strip_template_readme: delete the README lines from each template-only start marker
+# to its end marker, both included, and one blank line after the end marker. Stops when
+# a marker has no partner.
+strip_template_readme() {
+  [[ -f README.md ]] && grep -qxF -e "$README_START" -e "$README_END" README.md || return 0
+  local text
+  text=$(awk -v s="$README_START" -v e="$README_END" '
+    $0 == s { if (on) exit 1; on = 1; next }
+    $0 == e { if (!on) exit 1; on = 0; after = 1; next }
+    after && $0 == "" { after = 0; next }
+    { after = 0 }
+    !on { print }
+    END { if (on) exit 1 }' README.md) ||
+    die "README.md: a template-only marker has no partner ($README_START … $README_END)"
+  write_file README.md "$text"
+  changed 'README.md: template-only sections removed'
 }
 
 step_agents() {
@@ -246,6 +273,7 @@ step_template_files() {
     write_if_different .release-please-manifest.json $'{\n  ".": "0.1.0"\n}' '.release-please-manifest.json: 0.1.0'
     write_if_different CHANGELOG.md "$CHANGELOG_HEADER" 'CHANGELOG.md: template entries removed'
   fi
+  strip_template_readme
   [[ -f .template-only ]] || return 0
   mapfile -t paths < <(grep -v -e '^#' -e '^$' .template-only)
   for line in "${paths[@]}"; do

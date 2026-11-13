@@ -133,6 +133,28 @@ test_project_files_are_reset() {
   assert_file "$d/specs/changes/archive/2027-01-02-5-keep-me"
 }
 
+test_template_readme_sections_removed() {
+  # R18: steps 1 and 10. The README gets the project name and loses the template-only sections.
+  local d start='<!-- solo-harness:template-only:start -->' end='<!-- solo-harness:template-only:end -->'
+  d=$(copy_repo)
+  assert_status 0 bs "$d" 'name=acme-shop agents=claude' --local
+  assert_eq "$(head -1 "$d/README.md")" '# acme-shop'
+  assert_not_contains "$(cat "$d/README.md")" "$start"
+  assert_not_contains "$(cat "$d/README.md")" '## Quick start'
+  assert_contains "$(cat "$d/README.md")" '## Lifecycle and change sizes'
+  assert_no_file "$d/.harness/tests/test_readme.sh"
+  d=$(copy_repo)
+  printf '# solo-harness\n\nkeep 1\n%s\ndrop 1\n%s\nkeep 2\n%s\ndrop 2\n%s\n' "$start" "$end" "$start" "$end" > "$d/README.md"
+  assert_status 0 bs "$d" 'name=acme-shop agents=claude' --local
+  assert_eq "$(cat "$d/README.md")" $'# acme-shop\n\nkeep 1\nkeep 2'
+  assert_status 0 bs "$d" 'name=other' --local
+  assert_contains "$OUT" 'done: 0 change(s)'
+  d=$(copy_repo)
+  printf '# solo-harness\n%s\ndrop\n' "$start" > "$d/README.md"
+  assert_status 1 bs "$d" 'agents=claude' --local
+  assert_contains "$OUT" 'README.md'
+}
+
 test_rerun_keeps_owner_edits_and_answers() {
   # R18: a second run changes nothing the owner wrote and reuses the agent selection.
   local d; d=$(copy_repo)

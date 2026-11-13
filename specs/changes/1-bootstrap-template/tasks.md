@@ -194,12 +194,12 @@ flowchart LR
 
 **Blocked by:** T10c.
 
-- [ ] Sections from R20: quick start, lifecycle and S/M/L (diagram), enforcement layers (diagram), bootstrap flow (diagram), strict vs honor mode, sandbox, overlays (docstrings on public API only), recommended skills not included, plugin duplicates, deferred decisions
-- [ ] Bootstrap usage: the flags `--template`, `--dry-run`, `--local` and `--add-agent <name>`; `.template-version` (`repo`, `version`, `agents`); `TEMPLATE_REPO` in `.harness/config` for a fork that serves as a template; release tags are `v<version>` (design §8)
-- [ ] Dependabot PRs: which pin-only PRs pass `docs-gate` and `test-oracle` without fields or a `specs/` change (design §7)
-- [ ] Template-only README sections between markers; `scripts/bootstrap` deletes them in project mode (R18 step 10)
-- [ ] AC-1-32 (AGENTS.md part) Mermaid rule line present in `AGENTS.md`
-- [ ] Test: README contains every R20 section heading
+- [x] Sections from R20: quick start, lifecycle and S/M/L (diagram), enforcement layers (diagram), bootstrap flow (diagram), strict vs honor mode, sandbox, overlays (docstrings on public API only), recommended skills not included, plugin duplicates, deferred decisions
+- [x] Bootstrap usage: the flags `--template`, `--dry-run`, `--local` and `--add-agent <name>`; `.template-version` (`repo`, `version`, `agents`); `TEMPLATE_REPO` in `.harness/config` for a fork that serves as a template; release tags are `v<version>` (design §8)
+- [x] Dependabot PRs: which pin-only PRs pass `docs-gate` and `test-oracle` without fields or a `specs/` change (design §7)
+- [x] Template-only README sections between markers; `scripts/bootstrap` deletes them in project mode (R18 step 10)
+- [x] AC-1-32 (AGENTS.md part) Mermaid rule line present in `AGENTS.md`
+- [x] Test: README contains every R20 section heading
 
 ## T12: Publish
 
