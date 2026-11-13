@@ -310,14 +310,15 @@ for x in (r if isinstance(r, list) else [r]):
 
 REPO_JSON='' MODE='' REPO_URL=''
 
-# Step 4: squash merge only, PR title and body as the commit message, delete merged branches.
+# Step 4: squash merge only; the squash commit gets the PR title and the list of
+# commit messages; merged branches are deleted.
 step_repo_options() {
   local fields
   # A plain python3 block, not py_json: it needs statements, not one expression.
   fields=$(python3 -c 'import json, sys
 want = {"allow_squash_merge": True, "allow_merge_commit": False, "allow_rebase_merge": False,
         "delete_branch_on_merge": True, "squash_merge_commit_title": "PR_TITLE",
-        "squash_merge_commit_message": "PR_BODY"}
+        "squash_merge_commit_message": "COMMIT_MESSAGES"}
 have = json.load(sys.stdin)
 diff = [k for k in want if have.get(k) != want[k]]
 if any(k.startswith("squash_") for k in diff):  # GitHub wants these two together

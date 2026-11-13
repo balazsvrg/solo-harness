@@ -31,7 +31,7 @@ configured_github() {
   fake_github public
   gh_reply GET "$REPO_API" '{"full_name": "acme/demo", "html_url": "https://github.com/acme/demo", "visibility": "public",
     "allow_squash_merge": true, "allow_merge_commit": false, "allow_rebase_merge": false, "delete_branch_on_merge": true,
-    "squash_merge_commit_title": "PR_TITLE", "squash_merge_commit_message": "PR_BODY",
+    "squash_merge_commit_title": "PR_TITLE", "squash_merge_commit_message": "COMMIT_MESSAGES",
     "security_and_analysis": {"secret_scanning": {"status": "enabled"}, "secret_scanning_push_protection": {"status": "enabled"}}}'
   gh_reply GET "$REPO_API/labels" '[{"name": "Size/S"}, {"name": "size/M"}, {"name": "size/L"}, {"name": "size-exception"}, {"name": "agent"}, {"name": "dependencies"}]'
   gh_reply GET "$REPO_API/rulesets" '[{"id": 7, "name": "main", "source": "acme/demo", "enforcement": "active"}]'
@@ -69,6 +69,7 @@ test_dry_run_prints_every_github_call_and_writes_nothing() {
     assert_contains "$OUT" 'delete_branch_on_merge=true'
     assert_contains "$OUT" "-f 'description=Small change: no new or changed requirement'"
     assert_contains "$OUT" 'squash_merge_commit_title=PR_TITLE'
+    assert_contains "$OUT" 'squash_merge_commit_message=COMMIT_MESSAGES'
     local l
     for l in size/S size/M size/L size-exception agent dependencies; do
       assert_contains "$OUT" "dry-run: gh api -X POST $REPO_API/labels -f name=$l -f color="
