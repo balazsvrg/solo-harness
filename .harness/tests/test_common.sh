@@ -22,3 +22,13 @@ test_app_source_classification() {
   ! is_app_source docs/product.md || fail 'docs are harness'
   ! is_app_source .gitignore || fail 'root dotfile is harness'
 }
+
+test_vendored_rows() {
+  # Supports AC-1-5 and scripts/vendor-diff: one parser for VENDORED.md rows.
+  source "$HARNESS_ROOT/.harness/lib/common.sh"
+  # shellcheck disable=SC2016 # backticks are literal
+  printf '%s\n' '# Vendored skills' '| Skill | Source |' '|---|---|' \
+    '| `tdd` | o/r | skills/tdd | abc | MIT | unmodified |' \
+    '|  `x`  |  o/r  |  . (SKILL.md, scripts/)  |  |  MIT  |  adds a rule  |' > table.md
+  assert_eq "$(vendored_rows table.md)" $'tdd|o/r|skills/tdd|abc|MIT|unmodified\nx|o/r|. (SKILL.md, scripts/)||MIT|adds a rule'
+}

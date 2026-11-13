@@ -8,9 +8,21 @@ HARNESS_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$HARNESS_LIB_DIR/../config"
 
 log()  { printf '%s\n' "$*"; }
-warn() { printf 'warning: %s\n' "$*" >&2; }
 err()  { printf 'error: %s\n' "$*" >&2; }
 die()  { err "$*"; exit 1; }
+
+# trim TEXT: print TEXT without leading and trailing whitespace.
+trim() { local x=$1; x=${x#"${x%%[![:space:]]*}"}; printf '%s' "${x%"${x##*[![:space:]]}"}"; }
+
+# vendored_rows FILE: print one line per skill row of a VENDORED.md table, as
+# "skill|source|path|commit|license|changes" with each field trimmed.
+vendored_rows() {
+  local _ skill src path sha license changes
+  while IFS='|' read -r _ skill src path sha license changes _; do
+    printf '%s|%s|%s|%s|%s|%s\n' "$(trim "${skill//\`/}")" "$(trim "$src")" "$(trim "$path")" \
+      "$(trim "$sha")" "$(trim "$license")" "$(trim "$changes")"
+  done < <(grep -E '^\|[[:space:]]*`' "$1")
+}
 
 # run CMD...: execute, or only print it when DRY_RUN=1.
 run() {

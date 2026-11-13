@@ -149,7 +149,7 @@ main() {
     --update)
       [[ -n ${2:-} ]] || { err 'usage: install-tools --update <name|all>'; return 2; }
       if [[ $2 == all ]]; then
-        local t; for t in shellcheck actionlint gitleaks osv-scanner; do update_tool "$t" || return 1; done
+        local t; for t in "${!REPO[@]}"; do update_tool "$t" || return 1; done
       else
         update_tool "$2"
       fi ;;

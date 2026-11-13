@@ -11,17 +11,14 @@ vendored=$skills/VENDORED.md
 licenses=$root/THIRD_PARTY_LICENSES.md
 rc=0
 bad() { err "$*"; rc=1; }
-trim() { local x=$1; x=${x#"${x%%[![:space:]]*}"}; printf '%s' "${x%"${x##*[![:space:]]}"}"; }
 
 [[ -d $skills ]] || exit 0
 [[ -f $vendored ]] || die ".agents/skills/VENDORED.md: missing"
 
 declare -A row=() source_of=()
 modified=()
-# Rows: | `skill` | owner/repo | path | sha | license | changes |
-while IFS='|' read -r _ skill src path sha license changes _; do
-  skill=$(trim "${skill//\`/}") src=$(trim "$src") path=$(trim "$path")
-  sha=$(trim "$sha") license=$(trim "$license") changes=$(trim "$changes")
+# shellcheck disable=SC2034 # path and license are read through ${!v} below
+while IFS='|' read -r skill src path sha license changes; do
   row[$skill]=1 source_of[$skill]=$src
   for v in src path sha license changes; do
     [[ -n ${!v} ]] || bad "VENDORED.md: $skill: empty $v"
@@ -30,7 +27,7 @@ while IFS='|' read -r _ skill src path sha license changes _; do
   [[ -z $src || $src =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || bad "VENDORED.md: $skill: source must be owner/repo"
   [[ -f $skills/$skill/SKILL.md ]] || bad "VENDORED.md: $skill: missing .agents/skills/$skill/SKILL.md"
   [[ -n $changes && $changes != unmodified ]] && modified+=("$skill")
-done < <(grep -E '^\|[[:space:]]*`' "$vendored")
+done < <(vendored_rows "$vendored")
 
 # Skills written for this repo are listed as "- `name`" under "## Original skills".
 # shellcheck disable=SC2016 # backticks are literal
