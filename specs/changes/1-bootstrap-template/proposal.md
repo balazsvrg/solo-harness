@@ -204,7 +204,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 1. Ask the project name; replace placeholders.
 2. Ask which agents are used (multi-select of Claude, Codex, Copilot, Antigravity); delete the configs of the rest.
 3. Ask whether agents should stop adding AI attribution (`Co-Authored-By: Claude …` trailers, "Generated with" lines) to commits and PRs. Default: keep. On yes, turn attribution off in each selected agent's project config where the agent has such a setting (Claude Code: `.claude/settings.json`; the exact keys for all four agents are verified against their current docs during implementation, as in R5). Tell the owner which agents have no such setting. The template repo keeps attribution.
-4. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as squash commit message.
+4. Set repo options via `gh api`: squash-only, delete branch on merge, PR title as the squash commit title and the list of commits as the squash commit message.
 5. Create labels: `size/S`, `size/M`, `size/L`, `size-exception`, `agent`, `dependencies`.
 6. Apply the ruleset; detect strict or honor mode (R15). On public repos, enable CodeQL and secret-scanning push protection.
 7. Run `git config core.hooksPath .githooks`; check that gitleaks is installed.
