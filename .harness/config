@@ -20,3 +20,8 @@ PR_SIZE_MAX_LINES=400
 S_SIZE_MAX_LINES=150
 # Files that pr-size and the S-size limit do not count.
 SIZE_EXCLUDE_GLOBS=('**/package-lock.json' '**/pnpm-lock.yaml' '**/yarn.lock' '**/*.lock' '**/go.sum' 'specs/changes/archive/**')
+
+# The template repo (owner/name) that bootstrap records in .template-version when
+# GitHub does not name one, as for a clone or a fork. scripts/bootstrap --add-agent
+# downloads agent files from it. A fork that serves as a template changes this.
+TEMPLATE_REPO=balazsvrg/solo-harness

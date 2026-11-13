@@ -185,8 +185,8 @@ flowchart LR
 
 **Blocked by:** T10b.
 
-- [ ] Bootstrap also writes the template repo into `.template-version` (T10a writes only `version` and `agents`)
-- [ ] Reads repo and version from `.template-version`, downloads that tag's tarball with `gh api`, copies only that agent's paths; tested through the `gh_api` seam
+- [x] Bootstrap also writes the template repo into `.template-version` (T10a writes only `version` and `agents`)
+- [x] Reads repo and version from `.template-version`, downloads that tag's tarball with `gh api`, copies only that agent's paths; tested through the `gh_api` seam
 
 ## T11: README
 

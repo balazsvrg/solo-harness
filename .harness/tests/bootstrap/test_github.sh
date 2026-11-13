@@ -204,3 +204,118 @@ test_dry_run_prints_reads_and_ignores_org_rulesets() {
   assert_contains "$OUT" "dry-run: read: gh api $REPO_API/rulesets?includes_parents=false"
   assert_contains "$(cat "$GH_STATE/calls")" "GET $REPO_API/rulesets?includes_parents=false"
 }
+
+# --- --add-agent (T10c) -------------------------------------------------------
+
+# fake_tarball REPO TAG: the fake GitHub serves the working tree under test as the
+# tarball of REPO at TAG. GitHub puts every file under one "<owner>-<repo>-<sha>/" folder.
+fake_tarball() {
+  local f="$GH_STATE/GET repos_${1//\//_}_tarball_$2"
+  (cd "$HARNESS_ROOT" && git ls-files -co --exclude-standard | while IFS= read -r p; do
+    [[ -e $p || -L $p ]] && printf '%s\n' "$p"; done |
+    tar -czf "$f" --no-recursion --transform 's,^,acme-tpl-abc1234/,S' -T -)
+}
+
+# template_version DIR KEY: a value from DIR/.template-version.
+template_version() { sed -n "s/^$2=//p" "$1/.template-version"; }
+
+test_template_repo_recorded() {
+  # R18 --add-agent: bootstrap records the template repo. GitHub names it for a repo
+  # made with "Use this template"; otherwise TEMPLATE_REPO from .harness/config.
+  local d default; d=$(copy_repo)
+  default=$(bash -c 'source "$1"; printf %s "$TEMPLATE_REPO"' _ "$HARNESS_ROOT/.harness/config")
+  [[ $default == */* ]] || fail "TEMPLATE_REPO in .harness/config: '$default'"
+  fake_github public
+  gh_reply GET "$REPO_API" '{"full_name": "acme/demo", "html_url": "https://github.com/acme/demo", "visibility": "public",
+    "template_repository": {"full_name": "tpl/base"}}'
+  assert_status 0 gh_bs "$d" 'name=demo agents=claude'
+  assert_eq "$(template_version "$d" repo)" tpl/base
+  d=$(copy_repo)
+  assert_status 0 gh_bs "$d" 'name=demo agents=claude' --local
+  assert_eq "$(template_version "$d" repo)" "$default"
+  sed -i 's/^repo=.*/repo=mine\/fork/' "$d/.template-version"
+  assert_status 0 gh_bs "$d" '' --local
+  assert_eq "$(template_version "$d" repo)" mine/fork 'a re-run keeps the repo'
+}
+
+test_release_tag_is_v_version() {
+  # R18 --add-agent downloads the tag v<version>, so release-please must tag the root package so.
+  assert_eq "$(jq -r '.packages["."]["include-component-in-tag"]' "$HARNESS_ROOT/release-please-config.json")" false
+}
+
+test_add_agent_copies_only_its_paths() {
+  # R18 --add-agent
+  local d; d=$(copy_repo)
+  assert_status 0 gh_bs "$d" 'name=demo agents=claude' --local
+  sed -i 's/^repo=.*/repo=acme\/tpl/; s/^version=.*/version=0.4.2/' "$d/.template-version"
+  fake_github public
+  fake_tarball acme/tpl v0.4.2
+  assert_status 0 gh_bs "$d" 'attribution=remove' --add-agent copilot
+  assert_contains "$(cat "$GH_STATE/calls")" 'GET repos/acme/tpl/tarball/v0.4.2'
+  assert_eq "$(writes)" '' 'no GitHub write'
+  assert_status 0 cmp "$d/.github/copilot-instructions.md" "$HARNESS_ROOT/.github/copilot-instructions.md"
+  assert_status 0 cmp "$d/.github/hooks/guard.json" "$HARNESS_ROOT/.github/hooks/guard.json"
+  assert_file "$d/.github/skills/tdd/SKILL.md"
+  assert_no_file "$d/.codex"
+  assert_no_file "$d/.agents/hooks.json"
+  assert_eq "$(template_version "$d" agents)" claude,copilot
+  assert_eq "$(template_version "$d" version)" 0.4.2
+  assert_eq "$(jq -c . "$d/.github/copilot/settings.json")" '{"includeCoAuthoredBy":false}'
+  # Other agents keep their attribution.
+  assert_status 0 cmp "$d/.claude/settings.json" "$HARNESS_ROOT/.claude/settings.json"
+  assert_status 0 "$d/.harness/check/symlinks.sh" "$d"
+  assert_not_contains "$OUT" 'RELEASE_PLEASE_TOKEN'
+  assert_not_contains "$OUT" 'check-app'
+}
+
+test_add_agent_claude_trust_step_and_plugins() {
+  # R18 --add-agent: the added agent also gets its plugin check and its trust step.
+  local d c=$TEST_TMP/home/.claude; d=$(copy_repo)
+  assert_status 0 gh_bs "$d" 'name=demo agents=codex' --local
+  fake_github public
+  fake_tarball "$(template_version "$d" repo)" "v$(template_version "$d" version)"
+  mkdir -p "$c/plugins/cache/dup/skills/tdd"
+  touch "$c/plugins/cache/dup/skills/tdd/SKILL.md"
+  printf '{"enabledPlugins": {"dup@mkt": true}}\n' > "$c/settings.json"
+  printf '{"plugins": {"dup@mkt": [{"installPath": "%s"}]}}\n' "$c/plugins/cache/dup" > "$c/plugins/installed_plugins.json"
+  assert_status 0 gh_bs "$d" '' --add-agent claude
+  assert_eq "$(jq -c .enabledPlugins "$d/.claude/settings.json")" '{"dup@mkt":false}'
+  assert_eq "$(readlink "$d/CLAUDE.md")" AGENTS.md
+  assert_contains "$OUT" 'Claude Code: start claude'
+  assert_not_contains "$OUT" '/hooks'
+  assert_eq "$(template_version "$d" agents)" codex,claude
+  # The owner deleted the files by hand; the agent is listed once.
+  rm "$d/CLAUDE.md"; rm -r "$d/.claude"
+  assert_status 0 gh_bs "$d" '' --add-agent claude
+  assert_eq "$(template_version "$d" agents)" codex,claude
+}
+
+test_add_agent_refuses_and_changes_nothing() {
+  # R18 --add-agent: on any problem, stop before a file changes.
+  local d before version; d=$(copy_repo)
+  assert_status 0 gh_bs "$d" 'name=demo agents=claude,codex' --local
+  version=$(template_version "$d" version)
+  fake_github public
+  fake_tarball "$(template_version "$d" repo)" "v$version"
+  before=$(git -C "$d" status --porcelain --untracked-files=all; cat "$d/.template-version")
+  assert_status 1 gh_bs "$d" '' --add-agent codex
+  assert_contains "$OUT" '.codex'
+  assert_contains "$OUT" 'exists'
+  assert_status 1 gh_bs "$d" '' --add-agent cursor
+  assert_contains "$OUT" 'unknown agent: cursor'
+  assert_status 1 gh_bs "$d" '' --add-agent copilot --template
+  assert_status 1 gh_bs "$d" '' --add-agent
+  sed -i 's/^version=.*/version=9.9.9/' "$d/.template-version"
+  assert_status 1 gh_bs "$d" '' --add-agent copilot
+  assert_contains "$OUT" 'v9.9.9'
+  assert_contains "$OUT" 'gh auth login'
+  sed -i "s/^version=.*/version=$version/" "$d/.template-version"
+  assert_status 1 gh_bs "$d" 'attribution=maybe' --add-agent copilot
+  assert_contains "$OUT" 'answer keep or remove'
+  assert_status 0 gh_bs "$d" '' --add-agent copilot --dry-run
+  assert_contains "$OUT" 'dry-run: cp'
+  assert_eq "$(git -C "$d" status --porcelain --untracked-files=all; cat "$d/.template-version")" "$before"
+  rm "$d/.template-version"
+  assert_status 1 gh_bs "$d" '' --add-agent copilot
+  assert_contains "$OUT" 'run scripts/bootstrap first'
+}

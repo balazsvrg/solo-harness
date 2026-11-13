@@ -3,7 +3,8 @@
   "pull-request-footer": "Size: S\nChange: none\nADR: none – release PR made by release-please",
   "packages": {
     ".": {
-      "release-type": "simple"
+      "release-type": "simple",
+      "include-component-in-tag": false
     }
   }
 }
