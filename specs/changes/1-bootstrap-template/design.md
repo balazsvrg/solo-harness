@@ -65,10 +65,11 @@ scripts/                      # only commands the owner runs directly
     docs-gate.sh  pr-size.sh  test-oracle.sh
   hooks/                      # agent hooks: guard-bash.sh, fmt.sh, stop-check.sh, adapter.sh
   tests/
-    run.sh                    # plain-bash runner: sources each test_*.sh, runs every test_* function
+    run.sh                    # plain-bash runner: sources each test_*.sh, runs every test_* function; TEST_FILES picks other files
     lib/assert.sh
     fixtures/                 # PR bodies, fake diffs, sample change folders
     test_*.sh                 # one file per capability
+    bootstrap/test_*.sh       # make test-bootstrap: scripts/bootstrap on temp copies
 .template-only                # manifest of paths bootstrap deletes in a new project
 ```
 
@@ -198,7 +199,7 @@ The script writes a Markdown summary to `$GITHUB_STEP_SUMMARY` when that variabl
 
 ```mermaid
 flowchart TD
-  start([scripts/bootstrap]) --> mode{template repo?}
+  start([scripts/bootstrap]) --> mode{--template?}
   mode -- yes --> gh[GitHub steps only: repo options, labels, ruleset, security features]
   mode -- no --> name[project name → placeholders]
   name --> agents[select agents → delete others]
@@ -208,17 +209,17 @@ flowchart TD
   rs -- yes --> honor[honor mode notice]
   rs -- no --> strict[strict mode]
   honor --> local
-  strict --> local[core.hooksPath, install-tools, plugin duplicate check]
+  strict --> local[core.hooksPath, gitleaks check, plugin duplicate check]
   local --> human[wizard: human-only steps]
   human --> clean[.template-version, reset version/CHANGELOG, delete .template-only paths]
   clean --> summary[summary + check-app notice + .docs-map hint]
 ```
 
-- **Template detection:** the file `.template-only` exists **and** `.template-version` does not. In template mode bootstrap never deletes or renames anything.
+- **Template mode:** only with the flag `--template`. A repo made with "Use this template" has the same files as the template, so file checks cannot tell the two apart. Without the flag, a missing `.template-version` means a first project run, and a present one means a re-run. In template mode bootstrap never deletes or renames anything.
 - **Idempotency:** every step first checks the current state (label exists, ruleset with the same name exists and matches, hooksPath already set, file already deleted) and prints `ok` or `changed`.
 - **Dry run:** all mutating commands go through `run` in `common.sh`, which prints instead of executing when `DRY_RUN=1`.
 - **`--add-agent`:** reads the template repo and version from `.template-version`, downloads that tag's tarball with `gh api`, and copies only that agent's paths.
-- **AI attribution:** one yes/no question, default no (keep). On yes, bootstrap writes the "no attribution" setting into each selected agent's project config that supports one; for Claude Code that is the attribution setting in `.claude/settings.json` (commit and PR text set to empty). Agents without such a setting are named in the summary. Template mode never asks, so this repo keeps its `Co-Authored-By` trailers. `BOOTSTRAP_ANSWERS` carries the answer in tests.
+- **AI attribution:** one yes/no question, default no (keep). On yes, bootstrap writes the "no attribution" setting into each selected agent's project config that supports one; for Claude Code that is the attribution setting in `.claude/settings.json` (commit and PR text set to empty). Agents without such a setting are named in the summary. Checked on 2026-11-13: Claude Code `attribution: {"commit": "", "pr": "", "sessionUrl": false}` in `.claude/settings.json` (this form also works in versions before `attribution: false`); Copilot CLI `includeCoAuthoredBy: false` in `.github/copilot/settings.json` (a repo-overridable key); Codex has no repo setting (`commit_attribution` was removed); Antigravity documents none. Template mode never asks, so this repo keeps its `Co-Authored-By` trailers. `BOOTSTRAP_ANSWERS` carries the answer in tests.
 - **Plugin duplicates:** reads `~/.claude/settings.json` `enabledPlugins` and the skill folder names inside each enabled plugin's cache directory. Any plugin with a skill name that matches a folder in `.agents/skills/` gets `"<plugin>": false` in the project's `.claude/settings.json`.
 
 ## 9. Ruleset and the first PR

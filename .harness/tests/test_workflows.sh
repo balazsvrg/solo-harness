@@ -111,6 +111,7 @@ test_tools_outdated_is_report_only() {
 
 test_copilot_setup_steps() {
   # R7: Copilot installs the pinned tools and turns on the git hooks before it works.
+  has_agent copilot || return 0
   local f=$WF/copilot-setup-steps.yml
   assert_file "$f"
   assert_eq "$(job_names "$f" | xargs)" copilot-setup-steps 'the job id Copilot looks for'

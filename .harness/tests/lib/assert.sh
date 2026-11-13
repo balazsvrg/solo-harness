@@ -53,3 +53,17 @@ job_names() { top_block "$1" jobs | awk '/^  [A-Za-z0-9_-]+:/ {sub(/:.*/, ""); s
 job_block() {
   top_block "$1" jobs | awk -v j="$2" '/^  [A-Za-z0-9_-]+:/ {on = ($1 == j":"); next} on'
 }
+
+# has_agent NAME: true if the repo under test still has the config of agent NAME
+# (claude, codex, copilot, antigravity). Bootstrap deletes the configs of unused
+# agents, so tests of one agent's files return early without them. The bootstrap
+# tests prove that the template itself has all four.
+has_agent() {
+  case $1 in
+    claude) [[ -e $HARNESS_ROOT/.claude/settings.json ]] ;;
+    codex) [[ -e $HARNESS_ROOT/.codex ]] ;;
+    copilot) [[ -e $HARNESS_ROOT/.github/copilot-instructions.md ]] ;;
+    antigravity) [[ -e $HARNESS_ROOT/.agents/hooks.json ]] ;;
+    *) fail "unknown agent: $1" ;;
+  esac
+}

@@ -12,10 +12,10 @@ flowchart LR
   T2 --> T8
   T7 --> T9
   T8 --> T9
-  T4 --> T10
-  T5 --> T10
-  T6 --> T10
-  T9 --> T10 --> T11 --> T12 --> T13
+  T4 --> T10a
+  T5 --> T10a
+  T6 --> T10a
+  T9 --> T10a --> T10b --> T10c --> T11 --> T12 --> T13
   T8 --> T14
   T9 --> T14 --> T12
 ```
@@ -154,29 +154,48 @@ flowchart LR
 - [x] `.github/dependabot.yml` (github-actions, weekly, 3-day cooldown, grouped)
 - [x] Test: every required check name in the ruleset exists as a job name in the workflows
 
-## T10: Bootstrap
+## T10a: Bootstrap, local project mode
 
-**Delivers:** `scripts/bootstrap` (R15, R18) with its test suite.
+**Delivers:** `scripts/bootstrap` local steps (R18 steps 1–3, 7, 8, 10, 11) with `--dry-run` and `--local`, and `make test-bootstrap`.
 
 **Blocked by:** T4, T5, T6, T9.
 
-- [ ] Template mode, project mode, `--dry-run`, `--local`, `--add-agent`
-- [ ] Agent selection and deletion, AI-attribution question (default keep), plugin duplicate check, honor/strict detection, wizard-style human steps, `.template-version`, `.template-only` cleanup, final summary
-- [ ] `make test-bootstrap` wired into `check-harness`
-- [ ] AC-1-27 second dry run reports no changes
-- [ ] AC-1-28 each single-agent selection and all-four keep only the right files; symlinks resolve
+- [x] Project name (written as the title of `docs/product.md`), agent selection and deletion, AI-attribution question (default keep), `core.hooksPath` and gitleaks check, plugin duplicate check, `.template-version`, version/CHANGELOG reset, `.template-only` cleanup, final summary
+- [x] Agent-specific harness tests return early when that agent's config is absent; a claude-only copy passes `check-harness`
+- [x] `make test-bootstrap` wired into `check-harness`
+- [x] AC-1-27 second dry run reports no changes
+- [x] AC-1-28 each single-agent selection and all-four keep only the right files; symlinks resolve
+- [x] AC-1-30 `test-bootstrap` runs these in plain bash inside `check-harness`
+- [x] AC-1-34 `check-app` notice shown only for the placeholder
+- [x] AC-1-40 "remove attribution" turns it off in `.claude/settings.json`; default and template mode write nothing
+
+## T10b: Bootstrap, GitHub steps and template mode
+
+**Delivers:** R18 steps 4–6 and 9, R15 strict/honor detection, template mode.
+
+**Blocked by:** T10a.
+
+- [ ] Template mode (GitHub steps only, never deletes or renames), repo options, labels, ruleset create-or-update by name, honor mode on 403, CodeQL and push protection on public repos, wizard-style human steps
+- [ ] Every `gh api` call checked against current GitHub docs; tests replace `gh_api` through a sourced overrides file
 - [ ] AC-1-29 dry run prints every `gh api` call and writes nothing remotely
-- [ ] AC-1-30 `test-bootstrap` runs these in plain bash inside `check-harness`
-- [ ] AC-1-34 `check-app` notice shown only for the placeholder
-- [ ] AC-1-40 "remove attribution" turns it off in `.claude/settings.json`; default and template mode write nothing
+
+## T10c: Bootstrap `--add-agent`
+
+**Delivers:** `--add-agent <name>` (R18 flags, design §8).
+
+**Blocked by:** T10b.
+
+- [ ] Bootstrap also writes the template repo into `.template-version` (T10a writes only `version` and `agents`)
+- [ ] Reads repo and version from `.template-version`, downloads that tag's tarball with `gh api`, copies only that agent's paths; tested through the `gh_api` seam
 
 ## T11: README
 
 **Delivers:** the pipeline explained in detail, with Mermaid diagrams.
 
-**Blocked by:** T10.
+**Blocked by:** T10c.
 
 - [ ] Sections from R20: quick start, lifecycle and S/M/L (diagram), enforcement layers (diagram), bootstrap flow (diagram), strict vs honor mode, sandbox, overlays (docstrings on public API only), recommended skills not included, plugin duplicates, deferred decisions
+- [ ] Template-only README sections between markers; `scripts/bootstrap` deletes them in project mode (R18 step 10)
 - [ ] AC-1-32 (AGENTS.md part) Mermaid rule line present in `AGENTS.md`
 - [ ] Test: README contains every R20 section heading
 

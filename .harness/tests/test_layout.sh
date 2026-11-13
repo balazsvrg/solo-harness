@@ -5,8 +5,8 @@ check() { "$HARNESS_ROOT/.harness/check/$1.sh" "${@:2}"; }
 
 test_symlinks_resolve() {
   # AC-1-1
-  [[ $(readlink "$HARNESS_ROOT/CLAUDE.md") == AGENTS.md ]] || fail 'CLAUDE.md -> AGENTS.md'
-  [[ $(readlink "$HARNESS_ROOT/.github/skills") == ../.agents/skills ]] || fail '.github/skills -> ../.agents/skills'
+  if has_agent claude; then [[ $(readlink "$HARNESS_ROOT/CLAUDE.md") == AGENTS.md ]] || fail 'CLAUDE.md -> AGENTS.md'; fi
+  if has_agent copilot; then [[ $(readlink "$HARNESS_ROOT/.github/skills") == ../.agents/skills ]] || fail '.github/skills -> ../.agents/skills'; fi
   # R5: Antigravity reads AGENTS.md, so no GEMINI.md and no .gemini/.
   assert_no_file "$HARNESS_ROOT/GEMINI.md"
   [[ ! -e $HARNESS_ROOT/.gemini ]] || fail '.gemini/ must not exist'

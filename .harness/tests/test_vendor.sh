@@ -62,8 +62,8 @@ test_vendored_rows_complete() {
 
 test_skills_symlinks() {
   # AC-1-5: one skills directory, linked for Claude Code and Copilot.
-  assert_eq "$(readlink "$HARNESS_ROOT/.claude/skills")" ../.agents/skills
-  assert_eq "$(readlink "$HARNESS_ROOT/.github/skills")" ../.agents/skills
+  if has_agent claude; then assert_eq "$(readlink "$HARNESS_ROOT/.claude/skills")" ../.agents/skills; fi
+  if has_agent copilot; then assert_eq "$(readlink "$HARNESS_ROOT/.github/skills")" ../.agents/skills; fi
 }
 
 test_third_party_licenses() {

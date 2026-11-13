@@ -213,7 +213,7 @@ No `SessionStart` hook: it would cost tokens in every session. `handoff` documen
 10. Write `.template-version`; reset `version.txt`/`CHANGELOG.md`; delete template-only files (`specs/changes/archive/*-bootstrap-template/`, template README sections).
 11. Print a summary. It includes a prominent **"next: configure `check-app`"** notice that names the Makefile target, explains that it fails once source code exists, and points to the README's overlay section. It also mentions `.docs-map` and suggests running the lifecycle on the first change.
 
-Flags: `--dry-run` (print every action and `gh api` call, change nothing), `--local` (skip all GitHub steps), `--add-agent <name>` (fetch that agent's files from the template repo).
+Flags: `--template` (template mode: GitHub steps only), `--dry-run` (print every action and `gh api` call, change nothing), `--local` (skip all GitHub steps), `--add-agent <name>` (fetch that agent's files from the template repo).
 
 - **AC-1-27** GIVEN `--dry-run --local` WHEN run twice on a temp copy THEN the second run reports no changes.
 - **AC-1-28** GIVEN agent selection `claude` only THEN Codex, Copilot and Antigravity files are removed and all remaining symlinks resolve. Repeat for each single agent and for all four.
